@@ -124,7 +124,8 @@ These are numbered as in `../background.md` §2.5.
 - **U6**: a public identifier-boundary helper and Isar keyword table in
   `isabelle_query.api`.  The keyword table is also needed to refuse a NEW
   that is an Isar command word, which is NDTHT's `options` and `back` lesson.
-- **U3**: the import closure, for phase 2.
+- **U3**: the import closure, for phase 2.  Use `query graph imports -f
+  json` first; see `move.md` D2.
 - **U9**: bound names (constructors, conjuncts) as call-graph nodes would
   help with phase 3.
 

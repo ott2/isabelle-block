@@ -89,9 +89,11 @@ one addressing helper.
 - **D1.**  Should the check run only for cross-theory moves?  **Yes.**
   Within a theory, the only hazard is order (a forward reference).  Check that
   cheaply as well, but do not build closures for it.
-- **D2.**  Where should the import closure come from?  **Upstream (U3).**
-  Meanwhile use `query graph imports -f json` with a BFS in `block`, rather
-  than re-implementing `Session.Theory` resolution.
+- **D2.**  Where should the import closure come from?  **The `query` CLI**:
+  `query graph imports -f json`, one call, then a BFS in `block`.  Do not
+  re-implement `Session.Theory` resolution.  This follows the same rule as
+  `delete.md` D3: a library API (U3) is requested only if the CLI proves
+  insufficient, citing the limit that was hit.
 - **D3.**  Should the tool add a missing import itself?  **No, not in phase
   1.**  It should print the exact line.  Adding imports changes the
   dependency structure, which in NDTHT is a design decision (the substrate
@@ -100,10 +102,10 @@ one addressing helper.
 ## Dependencies and upstream asks (`../background.md` §2.5)
 
 - **U3**: a public per-theory import closure that follows session-qualified
-  imports.
+  imports.  Only if `query graph imports -f json` proves insufficient (D2).
 - **U2**: `callees -f tsv`.  Not needed if phase 1 computes references
   itself.
-- **U1** and **U4**: shared with `delete`.
+- **U1** (only if needed) and **U4**: shared with `delete`.
 
 ## Test plan
 

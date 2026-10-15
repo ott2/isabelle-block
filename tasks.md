@@ -87,10 +87,20 @@ recommendation for each) and a test plan.
 - [ ] `[upstream-asks]` **Draft the `isabelle-query` / `isabelle-layout`
   feature requests** into `upstream/`, one file each, signed, for Andras to
   check and post.  Do not post them yourself.  The list is
-  `docs/background.md` §2.5, U1–U9:
-  - U1, a public callers API;
+  `docs/background.md` §2.5, U1–U9.
+
+  **Rule (Andras, 2026-10-15): the `query` CLI first.**
+  - Callers come from `query callers -f tsv NAME...`, batched into one call.
+  - Import closures come from `query graph imports -f json`.
+  - A *library* API is requested only when the CLI is shown insufficient,
+    and the request cites the limit that was hit.  `isabelle-query` adds a
+    public name only for a demonstrated consumer need.  So U1 and U3 are
+    conditional; the rest are gaps the CLI does not cover either.
+
+  The requests:
+  - U1, a public callers API (conditional);
   - U2, `callees -f tsv`;
-  - U3, a per-theory import closure across sessions;
+  - U3, a per-theory import closure across sessions (conditional);
   - U4, prose antiquotations as callers;
   - U5, implicit-use evidence;
   - U6, the identifier-boundary helper and Isar keyword table;

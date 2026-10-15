@@ -94,8 +94,8 @@ directly above NAME.  See `move.md`.
    `[cut-span]`) and add the preamble rule.  Both help today's `delete` and
    `move` before any caller check exists.
 2. **Phase 2**: the caller check over a set of names, done in one batch:
-   - classes 1 and 2 from `query callers -f tsv` (one subprocess for all
-     names), until a library API exists (U1);
+   - classes 1 and 2 from `query callers -f tsv`, one subprocess for all
+     names (see D3);
    - `NAME_def` queried alongside;
    - class 3 by scanning prose antiquotations;
    - class 4 by reading attributes off the header and scanning `declare` and
@@ -114,17 +114,26 @@ directly above NAME.  See `move.md`.
 - **D2.**  Should implicit uses (`[simp]` and the like) refuse or warn?
   **Refuse**, overridable with `--force`.  The episodes where they were
   deleted cost more than a re-run with `--force` does.
-- **D3.**  Should phase 2 shell out to `query callers -f tsv` or import the
-  private `isabelle_query.graph._build_call_graph`?  **Shell out**, and file
-  U1.  CLAUDE.md forbids private imports, and a single batched call costs
-  seconds.
+- **D3.**  Where do callers come from?  **Settled (Andras, 2026-10-15): the
+  `query` CLI, `query callers -f tsv NAME...`**, batched into one call per
+  run, which builds the graph once and costs seconds.
+  - Importing the private `isabelle_query.graph._build_call_graph` is ruled
+    out by CLAUDE.md.
+  - A public library API (U1) is **not** requested up front.  The CLI's tsv
+    is already a versioned contract, and `isabelle-query` adds a public name
+    only when a consumer has shown it needs one.
+  - U1 becomes worth filing only if building this verb or `move` hits a
+    concrete limit of the CLI, and the request then cites it.  Examples: the
+    same parse being needed for callers, closure and name index at once, so
+    that separate subprocesses re-parse the project; or a field the tsv
+    lacks, beyond U8.
 - **D4.**  How do keep-lists work?  **A config file** (`.isabelle-block.toml`
   or a section of the `.isabelle-query` marker), not a flag retyped on every
   call.
 
 ## Dependencies and upstream asks (`../background.md` §2.5)
 
-- **U1**: a public callers API.
+- **U1**: a public callers API.  Only if the CLI proves insufficient (D3).
 - **U4**: prose antiquotations as an opt-in caller class.
 - **U5**: implicit-use evidence (attributes parsed off the header).
 - **U7**: preamble attribution versus section introductions.
