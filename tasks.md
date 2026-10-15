@@ -112,6 +112,13 @@ recommendation for each) and a test plan.
   Draft each one when the verb that needs it is being built, so the request
   carries a concrete use.
 
+  **State (2026-10-16): `upstream/README.md` tracks each one.**
+  - U2, U4, U5 and U7 are drafted, checked against 0.9.8, and await
+    Andras's review.
+  - U8 is fixed in 0.9.8.
+  - U1 and U3 are conditional.
+  - U6 and U9 are deferred to `rename`.
+
 ## Release and switch-over
 
 - [ ] `[first-release]` **0.1.0 on PyPI**, with Andras's go-ahead at each
