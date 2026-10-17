@@ -30,6 +30,7 @@ algorithm, its gaps, and a recommendation.
 | `span-overreach-scan.py` | regression scan of name-resolved spans | a corpus test, once `Entry.cut_span` is used |
 | `insert-after.py`, `insert-hyp.py` | insert text after an anchor; add a hypothesis | a possible `insert` verb (not yet an FR) |
 | `reindent.py` | re-indent a region | a possible `indent` verb (not yet an FR) |
+| `block-coverage.py` | lists occurrences of a marker regex that lie outside every match of a block regex; written 2026-10-17, after this snapshot | **`resub --cover`** (`[fr-resub-cover]`) |
 
 ## Knowledge-base entries (`insights/`)
 

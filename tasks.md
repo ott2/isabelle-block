@@ -78,6 +78,28 @@ recommendation for each) and a test plan.
 - [ ] `[fr-checked-move]` **A visibility-checked `block move`.**  See
   `docs/fr/move.md`.
   - It retires `hoist-scan.py`.
+- [ ] `[fr-resub-cover]` **`resub --cover MARKER_RE`: check a fold's
+  coverage before applying it.**  Folding a repeated multi-line term into a
+  definition with `resub` rewrites the canonical spelling only.  A variant —
+  `?T` for `T`, a reordered sum, a term split across a proof step — is left
+  alone, and the build is the first to say so.  NDTHT `54beedd6` lost a build
+  to eight `?T` spellings that way.
+  - With `--cover`, report every MARKER_RE match lying outside all PATTERN
+    matches as `FILE:LINE: text`, then `PASS:`/`FAIL:` with the counts, and
+    exit non-zero on FAIL.  The default is a dry run; `--cover --apply`
+    refuses to write on FAIL.
+  - PATTERN, REGION and `@FILE` resolve exactly as for a normal `resub`, so
+    the check runs on the very pattern that will be applied.  That shared
+    resolution is why this is an option rather than a separate verb.
+  - Prior art: `docs/prior-art/scripts/block-coverage.py` (66 lines, any
+    files, no REGION).
+  - Tests: a canonical-only file passes; a `?T` variant fails and is named
+    with its line; a marker inside a match on a later line counts as covered.
+- [ ] `[resub-template-newline]` **`@FILE` drops the template's trailing
+  newline.**  `resub`'s `@FILE` strips the file's final newline from the NEW
+  template, so a template ending in a whole line joins onto the next source
+  line.  It hit NDTHT `54beedd6` three times.  Keep the newline for a template
+  (whole lines by intent); a pattern may still strip it.  Test both.
 - [ ] `[maybe-insert-indent]` *(not yet a request)*.  NDTHT's
   `insert-after.py`, `insert-hyp.py` and `reindent.py` are block operations
   too (`docs/prior-art/README.md`).  Revisit once the three above are in.
