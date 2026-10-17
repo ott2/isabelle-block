@@ -95,6 +95,15 @@ recommendation for each) and a test plan.
     files, no REGION).
   - Tests: a canonical-only file passes; a `?T` variant fails and is named
     with its line; a marker inside a match on a later line counts as covered.
+- [ ] `[resub-entry-bound]` **A lazy `[\s\S]*?` can cross entries.**  In
+  NDTHT (2026-10-17) a `resub` over a whole file, `proof -\n  from step
+  obtain …[\s\S]*?by (rule ae_delta_ss(\d)_only…)…qed`, began its first
+  match at an *earlier* lemma with the same opening and deleted 418 lines,
+  with the expected count of 8.  Naming each entry as a REGION fixed it.
+  Offer `--within-entry`: reject (or report) a match that crosses an entry
+  boundary, so a whole-file `resub` is safe by default for proof rewrites.
+  Test: two lemmas with a shared prefix, the pattern matching only the
+  second's body.
 - [ ] `[resub-template-newline]` **`@FILE` drops the template's trailing
   newline.**  `resub`'s `@FILE` strips the file's final newline from the NEW
   template, so a template ending in a whole line joins onto the next source
