@@ -95,7 +95,8 @@ Race-safety: reads then writes files in sequence; NOT safe to run
 concurrently with another write (Edit / Write / a linter) on the same files.
 Never put it in the same parallel-tool batch as an Edit/Write of that file.
 
-Every verb prints an explicit PASS:/FAIL: line.
+Every run ends with an explicit PASS:/FAIL: line, and the exit status agrees
+(0 or 1).  `emit` prints its PASS: on stderr, so stdout is the block alone.
 """
 from __future__ import annotations
 
@@ -369,6 +370,11 @@ def v_emit(args, opt) -> int:
     path, start, end = parse_target(args[0], not opt["no_preamble"])
     block = read_lines(path)[start - 1:end]
     sys.stdout.write("".join(block))
+    # stdout is the block, verbatim, so that `emit ... > FILE` is a clean
+    # copy; the verdict every run ends with goes to stderr instead.
+    sys.stdout.flush()
+    print(f"PASS: emitted {path}[{start}..{end}] ({len(block)} lines)",
+          file=sys.stderr)
     return 0
 
 
@@ -733,7 +739,9 @@ def v_split(args, opt) -> int:
     affect the result.  That is why there is no sort-descending dance here,
     unlike `move`, which inserts as well as deletes.  What the design does
     not rule out is checked: overlapping ranges FAIL, and lines claimed by
-    no range are reported (they stay behind silently otherwise).
+    no range are reported (they stay behind silently otherwise).  Every
+    part is built before any is written, so a refusal in the last spec
+    leaves no earlier part behind.
     """
     if len(args) < 2:
         fail(f"usage: {USAGE['split']}")
@@ -741,6 +749,7 @@ def v_split(args, opt) -> int:
     lines = read_lines(src)
     n = len(lines)
     owner: dict[int, str] = {}
+    parts: list[tuple[Path, str, int, int]] = []
 
     for spec in args[1:]:
         try:
@@ -767,9 +776,13 @@ def v_split(args, opt) -> int:
         imp = " ".join(f'"{i}"' if "." in i else i for i in imports.split(","))
         out = src.parent / f"{name}.thy"
         header = f"theory {name}\n  imports {imp}\nbegin\n\n"
+        parts.append((out, header + "".join(body) + "\n\nend\n",
+                      len(body), len(spans)))
+
+    for out, text, n_body, n_spans in parts:
         if not opt["dry"]:
-            out.write_text(header + "".join(body) + "\n\nend\n")
-        print(f"  wrote {out} ({len(body)} body lines from {len(spans)} range(s))")
+            out.write_text(text)
+        print(f"  wrote {out} ({n_body} body lines from {n_spans} range(s))")
 
     gaps: list[tuple[int, int]] = []
     for i in range(1, n + 1):
@@ -921,7 +934,18 @@ def main(argv: list[str] | None = None) -> int:
             print(doc)
         print("\nblock --help for the addressing grammar and modifiers.")
         return 0
-    return VERBS[verb](rest, opt)
+    # Every run ends with PASS: or FAIL:, a crash included.  The traceback
+    # still goes to stderr for whoever debugs it.  Verbs write only after
+    # every check, so an exception before then has written nothing; one
+    # raised while writing may not have, and the message does not claim so.
+    try:
+        return VERBS[verb](rest, opt)
+    except Exception as e:  # not SystemExit: `fail` has already reported
+        import traceback
+        traceback.print_exc()
+        sys.stderr.flush()
+        print(f"FAIL: {verb}: unexpected {type(e).__name__}: {e}")
+        return 1
 
 
 if __name__ == "__main__":

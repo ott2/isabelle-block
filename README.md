@@ -57,8 +57,9 @@ included.
 `block --help` gives the full grammar, and `block VERB --help` gives one
 verb's.
 
-Every run ends with an explicit `PASS:` or `FAIL:` line.  A refusal writes
-nothing.
+Every run ends with an explicit `PASS:` or `FAIL:` line, and the exit status
+agrees.  `emit` prints its `PASS:` on stderr, so `block emit … > FILE` is a
+clean copy.  A refusal writes nothing.
 
 ## Related tools
 

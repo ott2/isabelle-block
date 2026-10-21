@@ -126,6 +126,19 @@ recommendation for each) and a test plan.
     is an `[upstream-asks]` draft, but only for a demonstrated limit.
   - **Keep `_arg_at`**, with the reasons written down.
   - See `docs/related-tools.md` §comby for the fit questions to test first.
+- [ ] `[reargs-term-bound]` **An argument can be the next command.**
+  `_arg_at` skips every kind of whitespace, blank lines included, and an
+  atom may be any identifier.  So a head outside a term takes what follows
+  as its argument and joins it onto its own line, all under `PASS`.  That
+  covers a method name, or a fact after `using`.  Found 2026-10-21:
+  `reargs 'simp $1' 'auto $1'` on the test fixture turned `by simp`, a blank
+  line and `lemma beta: …` into `by auto lemma beta: …`, three times over.
+  Inside `"…"` the closing quote stops an argument, which is why NDTHT's uses
+  did not hit it.  Only `--expect` would have caught it.
+  - Bound an argument to the enclosing quote or cartouche of a term, or at
+    least refuse one that follows a blank line or is an outer-syntax keyword.
+    `[reargs-foundation]` decides which mechanism.
+  - Test: the fixture case above refuses, or rewrites nothing.
 - [ ] `[borrow-features]` *(not yet requests)* **Features the related tools
   have and `block` lacks** (`docs/related-tools.md`).  Take each one only when
   a use asks for it.
@@ -184,8 +197,18 @@ recommendation for each) and a test plan.
   5. Drop `.dev0`, write the release notes as the version-bump commit's
      message, tag, push, and `twine upload`.
 
-  Whether 0.1.0 waits for `[fr-rename]` phase 1 is Andras's call.  It does
-  not need to: today's verbs are already useful outside NDTHT.
+  The order is settled (Andras, 2026-10-21).  0.1.0 ships after the
+  contract tests (`tests/test_contract.py`) and before `[cut-span]`, so
+  `[cut-span]` starts from a released, tested baseline.  The step 1 check was
+  done the same day: PyPI returns 404 for `isabelle-block`.  Recheck it just
+  before uploading.
+  - For the release notes, the changes since `bin/block.py`:
+    - `emit` now prints `PASS:` on stderr;
+    - `split` no longer leaves earlier parts behind when a later spec is
+      refused;
+    - a crash ends in `FAIL:`.
+
+    An NDTHT script that captures `emit` with `2>&1` would see the new line.
 - [ ] `[ndtht-switchover]` **Point NDTHT at the package**, once it is on PyPI.
   This is done in NDTHT, not here.
   - Add a floor `isabelle-block>=0.1.0` to `requirements.txt`, with a comment
@@ -201,6 +224,5 @@ recommendation for each) and a test plan.
 
 ## Decisions for Andras
 
-- Whether 0.1.0 ships before `rename`.
 - The decisions listed in each FR document (D1–D4 apiece), each with a
   recommendation.

@@ -73,9 +73,48 @@ def run_block(*args) -> subprocess.CompletedProcess:
                           capture_output=True, text=True)
 
 
+def last_line(text: str) -> str:
+    lines = text.rstrip("\n").splitlines()
+    return lines[-1] if lines else ""
+
+
+def check_contract(args, r: subprocess.CompletedProcess) -> None:
+    """Every run ends with `PASS:` or `FAIL:`, and the exit status agrees.
+
+    The verdict is the last line of stdout, except for a successful `emit`:
+    its stdout is the block itself, verbatim, so its `PASS:` goes to stderr.
+    `--help` and `--version` are questions, not runs, and are exempt."""
+    args = [str(a) for a in args]
+    if not args or {"-h", "--help", "-V", "--version"} & set(args):
+        return
+    stream = r.stderr if args[0] == "emit" and r.returncode == 0 else r.stdout
+    verdict = last_line(stream)
+    want = "PASS:" if r.returncode == 0 else "FAIL:"
+    assert verdict.startswith(want), (
+        f"exit {r.returncode} but last line {verdict!r}\n"
+        f"stdout:\n{r.stdout}\nstderr:\n{r.stderr}")
+    assert r.returncode in (0, 1), r.returncode
+
+
 @pytest.fixture
 def run():
-    return run_block
+    """`run_block`, with the PASS:/FAIL: contract checked on every call."""
+    def checked(*args) -> subprocess.CompletedProcess:
+        r = run_block(*args)
+        check_contract(args, r)
+        return r
+    return checked
+
+
+@pytest.fixture
+def snapshot(tmp_path):
+    """``snapshot()`` maps every file under tmp_path to its bytes, so a test
+    can assert that a refusal or a dry run left the whole directory alone,
+    including files it should not have created."""
+    def take() -> dict[str, bytes]:
+        return {str(p.relative_to(tmp_path)): p.read_bytes()
+                for p in sorted(tmp_path.rglob("*")) if p.is_file()}
+    return take
 
 
 @pytest.fixture
