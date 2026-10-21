@@ -13,6 +13,8 @@ Background for a cold start:
   `isabelle-layout` surfaces, the knowledge-base lessons, and the NDTHT
   switch-over edit list.
 - `docs/prior-art/`: a snapshot of the scripts and lessons themselves.
+- `docs/related-tools.md`: the external tools that overlap with `block`, and
+  how it differs from each.
 
 ## Suggested order
 
@@ -112,6 +114,26 @@ recommendation for each) and a test plan.
 - [ ] `[maybe-insert-indent]` *(not yet a request)*.  NDTHT's
   `insert-after.py`, `insert-hyp.py` and `reindent.py` are block operations
   too (`docs/prior-art/README.md`).  Revisit once the three above are in.
+- [ ] `[reargs-foundation]` **Decide what `reargs` is built on.**  Its
+  argument matcher (`_arg_at`, about 30 lines) is a hand-rolled and less
+  thorough version of comby's `:[x:e]` hole.  Before `reargs` grows, try
+  each alternative against its tests and NDTHT's uses.  Growth here means
+  constraints on holes, nested patterns, or a new kind of argument.
+  - **comby with an Isabelle custom matcher.**  Apply the prose mask to its
+    `-json-lines` match ranges.  The costs: an OCaml binary that pip does not
+    install, no release since 2022, and `"` cannot be declared a string.
+  - **A token stream from `isabelle_query.api`.**  If the API has none, this
+    is an `[upstream-asks]` draft, but only for a demonstrated limit.
+  - **Keep `_arg_at`**, with the reasons written down.
+  - See `docs/related-tools.md` §comby for the fit questions to test first.
+- [ ] `[borrow-features]` *(not yet requests)* **Features the related tools
+  have and `block` lacks** (`docs/related-tools.md`).  Take each one only when
+  a use asks for it.
+  - A `--dry-run` that prints a unified diff, not only counts (`fastmod`,
+    comby, ast-grep).
+  - Constraints on `reargs` holes, such as "`$1` is an atom" (comby `where`).
+  - JSON output of matches, for scripting (comby `-json-lines`, ast-grep
+    `--json`).
 
 ## Upstream
 
@@ -179,8 +201,6 @@ recommendation for each) and a test plan.
 
 ## Decisions for Andras
 
-- The package name `isabelle-block` and the command name `block` (chosen
-  2026-10-15, to match how NDTHT already says it).
 - Whether 0.1.0 ships before `rename`.
 - The decisions listed in each FR document (D1–D4 apiece), each with a
   recommendation.

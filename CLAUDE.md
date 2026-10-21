@@ -19,6 +19,11 @@ script replaced six siblings, each of which did one slice of the job
 2026-10-15 so it could be developed and released like its siblings,
 `isabelle-query`, `isabelle-layout` and `isabelle-watchdog`.
 
+The name is settled (Andras, 2026-10-21): the package is `isabelle-block` and
+the command is `block`.  It is tied to Isabelle on purpose.  The generic
+layer, spans and substitution, is thin, and `docs/related-tools.md` shows
+existing tools doing it well.  The value is in the Isabelle layer.
+
 The next work is three verbs, all of which NDTHT's history shows recurring:
 
 - `rename`;
@@ -97,6 +102,11 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   this package's job (see `docs/fr/move.md`).
 - **A gap in either package is reported upstream, not worked around.**  Draft
   a GitHub issue in `upstream/` for Andras to check and post.
+- **Borrow before building.**  `docs/related-tools.md` records which external
+  tools overlap with `block` (`ed`, `sd`, `fastmod`, comby, `isabelle
+  update`) and how `block` differs.
+  - Check it before writing a new mechanism.
+  - Add any new tool you find.
 
 ## Commands
 

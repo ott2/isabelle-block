@@ -60,6 +60,20 @@ verb's.
 Every run ends with an explicit `PASS:` or `FAIL:` line.  A refusal writes
 nothing.
 
+## Related tools
+
+Editing by line span and plain substitution are what `ed`, `sed`, `sd` and
+`fastmod` already do.  [comby](https://comby.dev) does bracket-aware
+rewriting much as `reargs` does.  `block` is worth installing if your edits
+need what those tools cannot see:
+
+- lemma names as addresses;
+- the difference between Isar code and prose (`text`, headings,
+  `\<comment>`);
+- edits at theory level.
+
+`docs/related-tools.md` compares them in detail.
+
 ## Status
 
 This is alpha, extracted from the NDTHT formalisation's `bin/block.py`, where it
