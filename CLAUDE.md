@@ -158,16 +158,17 @@ switch-over are listed in `tasks.md` `[ndtht-switchover]`.
   - no issue or comment.
 
   A GitHub post is signed: `gh` runs as Andras's account.
-- **Releasing** follows `isabelle-layout`'s runbook
-  (`~/projects/isabelle-layout/docs/publishing.md`):
+- **Releasing** follows `docs/publishing.md`:
   - drop `.dev0`;
   - the release notes are the version-bump commit's message;
+  - build before tagging;
   - a tag push publishes via `.github/workflows/release.yml`;
   - PyPI is a manual `twine upload`.
 
-  The workflow was copied from there.  Keep it mechanism-identical to the
-  siblings' workflows, so that only the Release title differs.  The
-  repository is `github.com/ott2/isabelle-block` (`origin`).
+  The tag push and the upload are Andras's.  Keep the workflow
+  mechanism-identical to the siblings' workflows, so that only the Release
+  title differs.  The repository is `github.com/ott2/isabelle-block`
+  (`origin`).
 - **Never rewrite history**: no `--amend`, `reset` or force-push.  Add a
   commit, or a version, instead.
 

@@ -195,21 +195,25 @@ recommendation for each) and a test plan.
      and `main` was pushed through `45dc534`.
   3. ~~Copy `.github/workflows/release.yml` from `~/projects/isabelle-layout`,
      and adapt it.~~  Done 2026-10-22.  Only the Release title differs from
-     the siblings' workflows.  `docs/publishing.md` is not copied: CLAUDE.md
-     points at isabelle-layout's runbook instead, so there is one copy to
-     keep current.
+     the siblings' workflows.  The runbook is this repository's own, shorter
+     `docs/publishing.md`, not a copy of isabelle-layout's (Andras,
+     2026-10-22: that one carries an old to-do list).  Its build step was
+     tried on 2026-10-22, and found the sdist shipping
+     `docs/prior-art/README.md` and `upstream/README.md`.  The `include`
+     patterns are now anchored.
   4. **Andras: the first-upload credential.**  The house workflow publishes
      only the GitHub Release, and PyPI is a manual `twine upload`.  A project
      that does not yet exist cannot have a token scoped to it, so there are
      two routes:
      - an account-scoped token for 0.1.0, revoked straight after in favour of
-       a project-scoped one (runbook Part 6);
-     - Trusted Publishing (runbook Part 2), which needs an upload job added
-       to the workflow.  That would make it differ from its siblings beyond
-       the title.
-  5. Check Python 3.9 compatibility statically.
-  6. Drop `.dev0`, write the release notes as the version-bump commit's
-     message, tag, push, and `twine upload`.
+       a project-scoped one (`docs/publishing.md` §5);
+     - Trusted Publishing, which needs an upload job added to the workflow.
+       That would make it differ from its siblings beyond the title.
+  5. ~~Check Python 3.9 compatibility statically.~~  Done 2026-10-22: the
+     `ast` check in `docs/publishing.md` §1 passes.  The two modules without
+     the `__future__` import have no annotations.
+  6. Follow `docs/publishing.md` from §2: drop `.dev0`, write the release
+     commit, build, then tag, push and upload (Andras).
 
   The order is settled (Andras, 2026-10-21).  0.1.0 ships after the
   contract tests (`tests/test_contract.py`) and before `[cut-span]`, so
