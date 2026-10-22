@@ -1,8 +1,11 @@
 ---
 name: feedback_outward_actions
-description: No push, GitHub repo creation, issue/comment, or PyPI upload without a fresh request from Andras; sign GitHub posts; no gh CLI locally
+description: "No push, repo creation or issue/comment without a fresh request; a release request covers tag, push and GitHub Release; the PyPI upload is Andras's only; sign posts; no gh"
 metadata:
+  node_type: memory
   type: feedback
+  originSessionId: 1bab4b32-1bb1-4b31-bb39-14f6b5e5202c
+  modified: 2026-10-22T22:16:45.270Z
 ---
 
 Nothing leaves this machine without a fresh request from Andras:
@@ -13,6 +16,13 @@ Nothing leaves this machine without a fresh request from Andras:
 - no issue, PR or comment.
 
 Approval for one push does not extend to the next.
+
+- **A release request covers the whole GitHub side** (Andras, 2026-10-22).
+  When Andras asks for a release, Claude runs `docs/publishing.md` through
+  pushing `main` and the tag and checking the GitHub Release; the notes are
+  the significant changes since the last release.  **The PyPI upload is
+  never Claude's**: Andras runs `twine upload -r pypi-isabelle-block`
+  himself.  See [[feedback_release_commands]].
 
 - **Upstream gaps** in `isabelle-query` or `isabelle-layout` are drafted as
   issue text in `upstream/` for Andras to check and post.  They are not worked

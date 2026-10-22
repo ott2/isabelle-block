@@ -152,21 +152,25 @@ switch-over are listed in `tasks.md` `[ndtht-switchover]`.
 - **Edits stay in this repository.**  Do not edit NDTHT, `isabelle-query` or
   `isabelle-layout` from here.
 - **Nothing outward-facing without a request from Andras.**  That covers:
-  - no `git push`;
+  - no `git push` (a release request covers the release's pushes; see
+    **Releasing**);
   - no GitHub repo creation;
-  - no PyPI upload;
+  - no PyPI upload, ever: that step is Andras's;
   - no issue or comment.
 
   A GitHub post is signed: `gh` runs as Andras's account.
 - **Releasing** follows `docs/publishing.md`:
   - drop `.dev0`;
-  - the release notes are the version-bump commit's message;
+  - the release notes are the version-bump commit's message, describing the
+    significant changes since the last release, as for the sister projects;
   - build before tagging;
   - a tag push publishes via `.github/workflows/release.yml`;
   - PyPI is a manual `twine upload -r pypi-isabelle-block`, naming this
     version's files.
 
-  The tag push and the upload are Andras's.  Keep the workflow
+  When Andras asks for a release, Claude does all of it through the tag
+  push and the GitHub Release.  The PyPI upload is Andras's alone.  Keep the
+  workflow
   mechanism-identical to the siblings' workflows, so that only the Release
   title differs.  The repository is `github.com/ott2/isabelle-block`
   (`origin`).
