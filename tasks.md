@@ -192,6 +192,10 @@ recommendation for each) and a test plan.
   - **PyPI is postponed** (Andras, 2026-10-22) until the standalone tool has
     seen more use, since glitches are expected.  v0.1.0 is a GitHub-only
     release: tag and Release, and the README installs from the tag.
+  - **v0.1.0 released 2026-10-22** (`867adad`).  The workflow published the
+    Release from the commit message, and an install from the tag
+    (`pip install git+https://github.com/ott2/isabelle-block@v0.1.0`) works
+    in a fresh venv.  `main` is now 0.1.1.dev0.
   - The first PyPI upload will be a later version, not 0.1.0.  Steps 4 and 6
     below then apply to that version.  When it happens, switch the README's
     install line back to `pip install isabelle-block`.
