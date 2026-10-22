@@ -14,3 +14,4 @@ designs in `docs/fr/`.
 - [feedback_outward_actions](feedback_outward_actions.md) — no push, repo creation, post or upload without a fresh request.  Sign GitHub posts; no `gh`.
 - [no-git-history-rewriting](no-git-history-rewriting.md) — no amend, reset or force-push; add a commit or a version instead.
 - [feedback_design_before_build](feedback_design_before_build.md) — settle the design in `docs/fr/` first, then work in small tested increments.  No estimates; work autonomously.
+- [feedback_release_commands](feedback_release_commands.md) — documented commands must run in any shell; never clear `dist/`; name this version's files, never `dist/*`.

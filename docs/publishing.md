@@ -4,8 +4,11 @@ These are the steps, in order.  Where a step exists to prevent a specific
 failure, it names that failure.  Steps marked **(Andras)** are outward-facing,
 and Claude does not take them.
 
-The commands are written for tcsh, and they use the repository's `.venv`
-(`.venv/bin/pip install build twine` once).
+The commands work unchanged in sh, bash, zsh and csh/tcsh.  They use no
+shell variables, no `$(...)`, and no `VAR=value command` prefix.  So
+`X.Y.Z` is written out by hand: replace it with the version being released.
+They use the repository's `.venv` (`.venv/bin/pip install build twine`
+once).
 
 ## 1. Pre-flight
 
@@ -39,14 +42,20 @@ The commands are written for tcsh, and they use the repository's `.venv`
 ## 3. Build, before tagging
 
 ```sh
-rm -rf dist
 .venv/bin/python -m build
-.venv/bin/twine check --strict dist/*
-tar tzf dist/*.tar.gz
+.venv/bin/twine check --strict dist/isabelle_block-X.Y.Z-*.whl dist/isabelle_block-X.Y.Z.tar.gz
+tar tzf dist/isabelle_block-X.Y.Z.tar.gz
 ```
 
-- `rm -rf dist` is there because `twine upload dist/*` uploads whatever it
-  finds, a stale artefact included.
+- **`dist/` is kept, not cleared.**  Every file name in it carries its
+  version, so earlier releases' artefacts stay alongside, for comparing
+  against when debugging.  `dist/` is gitignored.
+- So every command names **this version's two files**, never `dist/*`,
+  which would sweep in every earlier artefact.  The patterns end in `-*.whl`
+  and `.tar.gz` on purpose.  `isabelle_block-X.Y.Z*` would also match
+  `X.Y.Z.dev0` builds, and with patch 1 it would match patch 10 too.
+- Rebuilding the same version overwrites its two files, which is the
+  intent: the files a version names are the last build of it.
 - `build` makes the wheel *from the sdist*, so a file missing from the
   sdist's `include` fails here, not in a user's checkout.
 - `tar tzf` should list `src/`, `tests/`, `README.md`, `LICENSE`,
@@ -77,14 +86,16 @@ push.  The workflow edits an existing Release rather than failing.
 ## 5. Upload to PyPI **(Andras)**
 
 ```sh
-.venv/bin/twine upload dist/*
+.venv/bin/twine upload dist/isabelle_block-X.Y.Z-*.whl dist/isabelle_block-X.Y.Z.tar.gz
 ```
 
-- The username is the literal `__token__`.  `~/.pypirc` (mode 600) avoids
-  shell quoting.  Under tcsh, the environment form is:
+- The username is the literal `__token__`.  Put it and the token in
+  `~/.pypirc` (mode 600), which keeps the token out of the shell entirely.
+  If the environment is preferred, `env` sets it the same way in every
+  shell:
 
   ```sh
-  env TWINE_USERNAME=__token__ TWINE_PASSWORD=… .venv/bin/twine upload dist/*
+  env TWINE_USERNAME=__token__ TWINE_PASSWORD=… .venv/bin/twine upload dist/isabelle_block-X.Y.Z-*.whl dist/isabelle_block-X.Y.Z.tar.gz
   ```
 - **First upload only:** PyPI cannot scope a token to a project that does not
   exist yet.  So 0.1.0 needs an account-scoped token.  Revoke it straight
@@ -94,11 +105,15 @@ push.  The workflow edits an existing Release rather than failing.
 ## 6. Verify as a stranger would
 
 ```sh
-rm -rf scratch/stranger
-python3 -m venv scratch/stranger
+python3 -m venv --clear scratch/stranger
 scratch/stranger/bin/pip install isabelle-block==X.Y.Z
 scratch/stranger/bin/block --version
 ```
+
+For a GitHub-only release (no step 5), install from the tag instead:
+`scratch/stranger/bin/pip install git+https://github.com/ott2/isabelle-block@vX.Y.Z`.
+`--clear` empties a venv left over from an earlier check, so nothing stale
+is reused.
 
 ## 7. Afterwards
 
