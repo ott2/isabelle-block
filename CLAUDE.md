@@ -163,7 +163,8 @@ switch-over are listed in `tasks.md` `[ndtht-switchover]`.
   - the release notes are the version-bump commit's message;
   - build before tagging;
   - a tag push publishes via `.github/workflows/release.yml`;
-  - PyPI is a manual `twine upload`.
+  - PyPI is a manual `twine upload -r pypi-isabelle-block`, naming this
+    version's files.
 
   The tag push and the upload are Andras's.  Keep the workflow
   mechanism-identical to the siblings' workflows, so that only the Release

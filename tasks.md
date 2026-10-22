@@ -213,19 +213,14 @@ recommendation for each) and a test plan.
      tried on 2026-10-22, and found the sdist shipping
      `docs/prior-art/README.md` and `upstream/README.md`.  The `include`
      patterns are now anchored.
-  4. **Andras: the first-upload credential.**  The house workflow publishes
-     only the GitHub Release, and PyPI is a manual `twine upload`.  A project
-     that does not yet exist cannot have a token scoped to it, so there are
-     two routes:
-     - an account-scoped token for 0.1.0, revoked straight after in favour of
-       a project-scoped one (`docs/publishing.md` §5);
-     - Trusted Publishing, which needs an upload job added to the workflow.
-       That would make it differ from its siblings beyond the title.
+  4. ~~The first-upload credential.~~  Settled (Andras, 2026-10-22): the
+     upload is `twine upload -r pypi-isabelle-block …`, a repository entry in
+     Andras's `~/.pypirc` (`docs/publishing.md` §3).
   5. ~~Check Python 3.9 compatibility statically.~~  Done 2026-10-22: the
      `ast` check in `docs/publishing.md` §1 passes.  The two modules without
      the `__future__` import have no annotations.
-  6. Follow `docs/publishing.md` from §2: drop `.dev0`, write the release
-     commit, build, then tag, push and upload (Andras).
+  6. Follow `docs/publishing.md`: drop `.dev0` and write the release commit,
+     then build (§2), then tag, push and upload (§3, Andras).
 
   The order is settled (Andras, 2026-10-21).  0.1.0 ships after the
   contract tests (`tests/test_contract.py`) and before `[cut-span]`, so
