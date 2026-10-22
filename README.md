@@ -19,11 +19,15 @@ a lemma up and editing it.
 ## Install
 
 ```sh
-python3 -m pip install isabelle-block
+python3 -m pip install git+https://github.com/ott2/isabelle-block@v0.1.0
 ```
 
 This puts `block` on your `PATH`.  Needs Python 3.9 or later; depends on
-`isabelle-query`.  It needs no Isabelle process.
+`isabelle-query`, which pip fetches from PyPI.  It needs no Isabelle process.
+
+`isabelle-block` is not on PyPI yet.  It will be published there once the
+standalone tool has seen more use; until then, install a tagged release from
+GitHub as above.
 
 ## Verbs
 

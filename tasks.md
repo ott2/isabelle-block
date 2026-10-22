@@ -187,8 +187,16 @@ recommendation for each) and a test plan.
 
 ## Release and switch-over
 
-- [ ] `[first-release]` **0.1.0 on PyPI**, with Andras's go-ahead at each
-  outward step.  Steps:
+- [ ] `[first-release]` **The first release on PyPI**, with Andras's go-ahead
+  at each outward step.
+  - **PyPI is postponed** (Andras, 2026-10-22) until the standalone tool has
+    seen more use, since glitches are expected.  v0.1.0 is a GitHub-only
+    release: tag and Release, and the README installs from the tag.
+  - The first PyPI upload will be a later version, not 0.1.0.  Steps 4 and 6
+    below then apply to that version.  When it happens, switch the README's
+    install line back to `pip install isabelle-block`.
+
+  Steps:
   1. ~~Check that the name `isabelle-block` is free on PyPI.~~  Done
      2026-10-21 (404).  Recheck just before uploading.
   2. ~~Andras creates `github.com/ott2/isabelle-block`.~~  Done 2026-10-22,
