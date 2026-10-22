@@ -189,12 +189,26 @@ recommendation for each) and a test plan.
 
 - [ ] `[first-release]` **0.1.0 on PyPI**, with Andras's go-ahead at each
   outward step.  Steps:
-  1. Check that the name `isabelle-block` is free on PyPI.
-  2. Andras creates `github.com/ott2/isabelle-block`.
-  3. Copy `.github/workflows/release.yml` and `docs/publishing.md` from
-     `~/projects/isabelle-layout`, and adapt them.
-  4. Check Python 3.9 compatibility statically.
-  5. Drop `.dev0`, write the release notes as the version-bump commit's
+  1. ~~Check that the name `isabelle-block` is free on PyPI.~~  Done
+     2026-10-21 (404).  Recheck just before uploading.
+  2. ~~Andras creates `github.com/ott2/isabelle-block`.~~  Done 2026-10-22,
+     and `main` was pushed through `45dc534`.
+  3. ~~Copy `.github/workflows/release.yml` from `~/projects/isabelle-layout`,
+     and adapt it.~~  Done 2026-10-22.  Only the Release title differs from
+     the siblings' workflows.  `docs/publishing.md` is not copied: CLAUDE.md
+     points at isabelle-layout's runbook instead, so there is one copy to
+     keep current.
+  4. **Andras: the first-upload credential.**  The house workflow publishes
+     only the GitHub Release, and PyPI is a manual `twine upload`.  A project
+     that does not yet exist cannot have a token scoped to it, so there are
+     two routes:
+     - an account-scoped token for 0.1.0, revoked straight after in favour of
+       a project-scoped one (runbook Part 6);
+     - Trusted Publishing (runbook Part 2), which needs an upload job added
+       to the workflow.  That would make it differ from its siblings beyond
+       the title.
+  5. Check Python 3.9 compatibility statically.
+  6. Drop `.dev0`, write the release notes as the version-bump commit's
      message, tag, push, and `twine upload`.
 
   The order is settled (Andras, 2026-10-21).  0.1.0 ships after the

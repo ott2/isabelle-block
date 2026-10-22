@@ -88,3 +88,7 @@ python3 -m venv .venv
 .venv/bin/pip install -e '.[test]'
 .venv/bin/pytest
 ```
+
+## Authors & license
+
+By András Salamon, with Claude Opus 4.7, 4.8, 5, and 5.5. [MIT](LICENSE).
