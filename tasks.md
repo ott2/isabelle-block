@@ -154,16 +154,18 @@ recommendation for each) and a test plan.
   - U5, implicit-use evidence;
   - U6, the identifier-boundary helper and Isar keyword table;
   - U7, preamble versus section introduction;
-  - U8, `<toplevel>` tsv rows (NDTHT already has a draft,
-    `upstream/query-callers-batch.md`);
-  - U9, bound names as call-graph nodes.
+  - U8, `<toplevel>` tsv rows;
+  - U9, bound names as call-graph nodes;
+  - U10, a declaration in mid-line.
 
   Draft each one when the verb that needs it is being built, so the request
   carries a concrete use.
 
-  **State (2026-10-16): `upstream/README.md` tracks each one.**
-  - U2, U4, U5 and U7 are drafted, checked against 0.9.8, and await
-    Andras's review.
+  **State (2026-10-24): `upstream/README.md` tracks each one.**
+  - U2, U4 and U5 are drafted, checked against 0.9.8, and not yet posted.
+    Recheck each against the current isabelle-query before posting.
+  - U7 and U10 were posted as isabelle-query#28 and #29, and fixed in
+    1.1.1.
   - U8 is fixed in 0.9.8.
   - U1 and U3 are conditional.
   - U6 and U9 are deferred to `rename`.
