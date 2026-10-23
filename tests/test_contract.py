@@ -12,7 +12,7 @@ import re
 
 import pytest
 
-from conftest import EXTRA, FIXTURE, last_line
+from conftest import DECL, EXTRA, FIXTURE, SESSION_ROOT, USER, last_line
 
 N0 = len(FIXTURE.splitlines())
 
@@ -135,14 +135,88 @@ def test_delete_by_name_keeps_the_next_entrys_preamble(thy, run):
     assert "beta doc" in txt and "lemma beta" in txt
 
 
-def test_name_addressing_refuses_a_theory_declaring_keywords(thy, run, snapshot):
+def test_a_theory_declaring_keywords_resolves(thy, run):
+    # Its own header is all the parser needs; 0.1.0 refused it for nothing.
     p = thy("Kw.thy", KEYWORDS)
+    r = run("emit", f"{p}:alpha")
+    assert r.returncode == 0 and "lemma alpha" in r.stdout
+
+
+@pytest.fixture
+def session(tmp_path):
+    """A session directory holding Decl (declares `my_cmd`) and User (uses it)."""
+    d = tmp_path / "kw"
+    d.mkdir()
+    (d / "ROOT").write_text(SESSION_ROOT)
+    (d / "Decl.thy").write_text(DECL)
+    (d / "User.thy").write_text(USER)
+    return d
+
+
+def test_a_sibling_declared_command_is_not_swallowed(session, run):
+    # The hazard the old `keywords` check never looked at: User declares
+    # nothing, so it was resolved alone, and `alpha` took `my_cmd bar`.
+    r = run("emit", f"{session / 'User.thy'}:alpha")
+    assert r.returncode == 0
+    assert "lemma alpha" in r.stdout and "my_cmd" not in r.stdout
+    assert "NOTE" not in r.stderr
+
+
+def test_delete_by_name_keeps_a_sibling_declared_command(session, run):
+    p = session / "User.thy"
+    run("delete", f"{p}:alpha")
+    txt = p.read_text()
+    assert "lemma alpha" not in txt and "my_cmd bar" in txt
+
+
+def test_root_names_the_session_for_a_file_outside_it(session, run, tmp_path):
+    loose = tmp_path / "loose"
+    loose.mkdir()
+    p = loose / "User.thy"
+    p.write_text(USER)
+    r = run("emit", f"{p}:alpha", "--root", session)
+    assert r.returncode == 0 and "my_cmd" not in r.stdout
+
+
+def test_a_file_in_no_session_gets_a_note_on_stderr(thy, run):
+    p = thy()
+    r = run("emit", f"{p}:alpha")
+    assert r.returncode == 0 and "no session" in r.stderr
+    assert "NOTE" not in r.stdout
+
+
+def test_a_loose_directory_stands_in_for_a_session(run, tmp_path):
+    # No ROOT: the directory's theories supply the keyword table, as in
+    # `query`, so copying Decl and User into scratch/ together still works.
+    loose = tmp_path / "loose"
+    loose.mkdir()
+    (loose / "Decl.thy").write_text(DECL)
+    (loose / "User.thy").write_text(USER)
+    r = run("emit", f"{loose / 'User.thy'}:alpha")
+    assert r.returncode == 0 and "my_cmd" not in r.stdout
+
+
+@pytest.mark.parametrize("bad", ["no_such_dir", "empty"])
+def test_a_bad_root_refuses(thy, run, snapshot, tmp_path, bad):
+    p = thy()
+    if bad == "empty":
+        (tmp_path / "empty").mkdir()
     before = snapshot()
-    r = run("delete", f"{p}:alpha")
-    assert r.returncode == 1 and "keywords" in r.stdout
+    r = run("delete", f"{p}:alpha", "--root", tmp_path / bad)
+    assert r.returncode == 1 and snapshot() == before
+
+
+def test_an_entry_sharing_a_line_refuses(thy, run, snapshot):
+    # isabelle_query's own case: a one-line `axiomatization where F1: ...`
+    # is two entries on one line, so no line span holds either alone.
+    p = thy("Ax.thy", FIXTURE.replace(
+        "lemma beta", 'axiomatization where F1: "True"\n\nlemma beta'))
+    before = snapshot()
+    r = run("delete", f"{p}:F1")
+    assert r.returncode == 1 and "shares a line" in r.stdout
     assert snapshot() == before
-    # spans never touch the parser, so they still work there
-    assert run("emit", f"{p}:8..9").returncode == 0
+    # a line span still works there
+    assert run("emit", f"{p}:10").returncode == 0
 
 
 def test_a_duplicated_name_refuses(thy, run, snapshot):

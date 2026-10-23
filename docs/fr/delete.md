@@ -90,9 +90,11 @@ directly above NAME.  See `move.md`.
 
 ## Phasing
 
-1. **Phase 1**: switch addressing to `Entry.cut_span` (`tasks.md`
-   `[cut-span]`) and add the preamble rule.  Both help today's `delete` and
-   `move` before any caller check exists.
+1. **Phase 1**: switch addressing to `Entry.cut_span`, and add the preamble
+   rule.  Both help today's `delete` and `move` before any caller check
+   exists.  The switch is done (2026-10-23, with the session keyword table).
+   The preamble rule is `tasks.md` `[heading-rule]`, and waits on how U7 is
+   handled.
 2. **Phase 2**: the caller check over a set of names, done in one batch:
    - classes 1 and 2 from `query callers -f tsv`, one subprocess for all
      names (see D3);

@@ -23,7 +23,8 @@ python3 -m pip install git+https://github.com/ott2/isabelle-block@v0.1.0
 ```
 
 This puts `block` on your `PATH`.  Needs Python 3.9 or later; depends on
-`isabelle-query`, which pip fetches from PyPI.  It needs no Isabelle process.
+`isabelle-query` and `isabelle-layout`, which pip fetches from PyPI.  It
+needs no Isabelle process.
 
 `isabelle-block` is not on PyPI yet.  It will be published there once the
 standalone tool has seen more use; until then, install a tagged release from
@@ -56,6 +57,11 @@ included.
   substitutions are made.
 - `--except NAME` leaves an entry out of every region.
 - `--no-preamble` starts a resolved span at the entry, not its doc block.
+- `--root DIR` names the session root whose keyword table name resolution
+  uses.  By default it is discovered as `query` discovers it: an
+  environment variable, a `.isabelle-query` marker, or the nearest `ROOT`.
+  The table matters because a theory may use a command that another theory
+  in its session declares.
 - `--no-trailing-blank` cuts verbatim, without blank-line healing.
 
 `block --help` gives the full grammar, and `block VERB --help` gives one

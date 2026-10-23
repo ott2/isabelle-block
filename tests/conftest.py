@@ -6,6 +6,7 @@ under test is the exit status, the PASS:/FAIL: line and the bytes on disk.
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -68,9 +69,49 @@ end
 """
 
 
+# A session root named in the environment would be used for every fixture
+# file, so the suite would answer differently on a machine that sets one.
+_ENV = {k: v for k, v in os.environ.items()
+        if k not in ("ISABELLE_LAYOUT_ROOT", "ISABELLE_QUERY_ROOT")}
+
+
+# A two-theory session: Decl declares a command, User uses it.  Parsed alone,
+# User's `my_cmd bar` is not a command, and `alpha`'s span swallows it.
+SESSION_ROOT = 'session KW = HOL +\n  theories\n    Decl\n    User\n'
+
+DECL = """\
+theory Decl
+  imports Main
+  keywords "my_cmd" :: thy_decl
+begin
+
+lemma in_decl: True by simp
+
+my_cmd foo
+
+lemma after_cmd: True by simp
+
+end
+"""
+
+USER = """\
+theory User
+  imports Decl
+begin
+
+lemma alpha: True by simp
+
+my_cmd bar
+
+lemma beta: True by simp
+
+end
+"""
+
+
 def run_block(*args) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, "-m", "isabelle_block", *map(str, args)],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, env=_ENV)
 
 
 def last_line(text: str) -> str:

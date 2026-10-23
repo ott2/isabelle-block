@@ -44,14 +44,20 @@ At present everything lives in `src/isabelle_block/cli.py`, one module ported
 almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
 `tasks.md`; do that when `rename` lands, not before.  These are its layers:
 
-- **Addressing**: `parse_target`, `parse_dest` and `resolve_entry`.
+- **Addressing**: `parse_target`, `parse_dest`, `resolve_entry` and
+  `_section`.
   - A target is `FILE:REGION`, one token.  REGION is `A..B`, `A-B`, `N`, an
     entry `NAME`, or `all`.
   - Spans are the grammar `query` prints, so its output pastes straight in.
-  - A NAME resolves through `isabelle_query.api.parse_theory`.  The span starts
-    at the entry's preamble and ends at the end of its proof.  It is **clipped
-    below the next entry's preamble**, because writing through an unclipped
-    span eats the next lemma's doc block.
+  - A NAME resolves to the entry's **`Entry.cut_span`**, the span
+    `isabelle_query` documents as the one a tool writes through.  It runs
+    from the doc preamble to the end of the proof, and never reaches the next
+    entry's doc block.  It is `None` when two entries share a line, and that
+    is a refusal.  `block` does not compute spans itself: 0.1.0's local clip
+    reached into the next doc block wherever `body_end_line` did.
+  - `_section` parses each file once per run, with its **session's keyword
+    table**: `parse_theory(..., root=)`, the root coming from `--root` or
+    `isabelle_layout.default_t_dir`, as in `query`.
 - **Splicing**: `norm_splice`.  This is the blank-seam healing, which leaves
   exactly one blank line between blocks.  It is the code that looks harmless to
   adjust, and its tests assert properties rather than golden bytes.
@@ -77,10 +83,12 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   and `head`.  Prose intervals come from `isabelle_query.api`
   (`TheorySection.text_blocks`, `heading_spans`, `nonisar_spans`); do not
   re-derive them with regexes.
-- **Name addressing refuses a theory that declares `keywords`.**
-  `parse_theory` sees only that file's header, so a custom command declared
-  by a sibling theory would parse wrongly.  The tool checks this rather than
-  assuming it.
+- **Name addressing parses with the session's keyword table.**  A theory may
+  use a command that a *sibling's* `keywords` declares.  Parsed alone, that
+  command is not recognised, and the entry above it swallows it.  0.1.0
+  refused the declaring theory instead, which parses fine alone, and missed
+  the theory that uses the command.  On the AFP, 111 spans were wrong that
+  way.  A file in no named session gets a NOTE on stderr.
 - **Literal means literal.**  `sub` is `str.replace` on both sides.  The perl
   predecessors turned `\<lambda>` into `<lambda>`.  An `@FILE` argument reads a
   pattern or replacement from a file, which is the escape hatch for Isabelle
@@ -90,16 +98,18 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
 
 ## Dependencies
 
-- **`isabelle-query`** (`>=0.9.7`).  Import only from `isabelle_query.api`:
-  `parse_theory`, `parse_root`, `Entry`, `TheorySection`.  Never import from
-  `isabelle_query.parsing` or `.cli`, which move without notice.  The fields
-  used today:
-  - `Entry.name`, `thy_line`, `thy_end`, `preamble` and `body_end_line`;
-  - `TheorySection.entries`, `text_blocks`, `heading_spans` and
+- **`isabelle-query`** (`>=1.1.0`, for the `[early-end]` fix: an entry no
+  longer ends at a heading inside its own proof).  Import only from
+  `isabelle_query.api`: `parse_theory`, `parse_root`, `Entry`,
+  `TheorySection`.  Never import from `isabelle_query.parsing` or `.cli`,
+  which move without notice.  The fields used today:
+  - `Entry.name`, `thy_line` and `cut_span`;
+  - `TheorySection.entries`, `session`, `text_blocks`, `heading_spans` and
     `nonisar_spans`.
-- **`isabelle-layout`**: not yet a direct dependency.  The visibility-checked
-  `move` needs a theory's import closure and session membership, and that is
-  this package's job (see `docs/fr/move.md`).
+- **`isabelle-layout`** (`>=0.2.2`): `default_t_dir`, the session-root
+  discovery `query` uses.  The visibility-checked `move` will also need a
+  theory's import closure and session membership from it (see
+  `docs/fr/move.md`).
 - **A gap in either package is reported upstream, not worked around.**  Draft
   a GitHub issue in `upstream/` for Andras to check and post.
 - **Borrow before building.**  `docs/related-tools.md` records which external
@@ -114,11 +124,13 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
 python3 -m venv .venv
 .venv/bin/pip install '.[test]'      # NOT -e: test what a user installs
 .venv/bin/pytest
+.venv/bin/pytest -m corpus           # read-only, NDTHT t/ and the AFP: ~1 min
 .venv/bin/block --help
 ```
 
-Reinstall after editing `src/`, as the sibling packages do.  The only machine
-here has Python 3.14.  `requires-python >= 3.9` is checked only statically:
+Reinstall after editing `src/`, as the sibling packages do.  The machine has
+Python 3.14 (the `.venv`) and 3.15, so `requires-python >= 3.9` is checked
+only statically:
 keep `from __future__ import annotations`, and use no `match` statement and no
 post-3.9 stdlib call.
 

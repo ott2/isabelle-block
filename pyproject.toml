@@ -27,7 +27,11 @@ classifiers = [
     "Topic :: Software Development",
 ]
 dependencies = [
-    "isabelle-query>=0.9.7",
+    # 1.1.0: an entry no longer ends at a heading inside its own proof
+    # [early-end], so a cut_span written through holds the whole proof.
+    "isabelle-query>=1.1.0",
+    # default_t_dir, the session-root discovery `query` itself uses.
+    "isabelle-layout>=0.2.2",
 ]
 
 [project.optional-dependencies]
@@ -42,7 +46,9 @@ block = "isabelle_block.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra --strict-markers"
+# The corpus tests read real trees and take about a minute: `pytest -m corpus`.
+addopts = "-ra --strict-markers -m 'not corpus'"
+markers = ["corpus: read-only checks against NDTHT's t/ and the AFP"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/isabelle_block"]

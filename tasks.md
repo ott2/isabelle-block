@@ -18,7 +18,7 @@ Background for a cold start:
 
 ## Suggested order
 
-1. Groundwork: `[cut-span]`, then `[heading-rule]`.
+1. Groundwork: `[heading-rule]`, once Andras has decided how (see the item).
 2. `[fr-rename]` phase 1.
 3. `[fr-safe-delete]` phase 2.
 4. `[fr-checked-move]` phase 1.
@@ -27,37 +27,36 @@ Draft `[upstream-asks]` alongside the work as each gap is hit.
 
 ## Groundwork
 
-- [ ] `[cut-span]` **Resolve names through `Entry.cut_span`.**
-  - `resolve_entry` re-implements the clipped span that `isabelle_query.api`
-    already provides as `Entry.cut_span`, which is documented as the span a
-    delete or move tool writes through.
-  - Unlike the local code, `cut_span` is `None` when `shares_line` (two
-    declarations on one line).  That must become a refusal.
-  - Replace the `keywords` refusal in `_entries` by
-    `parse_theory(..., root=ROOT)`, which builds the session-wide keyword
-    table.  Discover ROOT from the `.isabelle-query` marker as `query` does,
-    with `--root DIR` to override.
-  - Keep `--no-preamble`.
-  - Port `prior-art/scripts/span-overreach-scan.py` as a corpus test (see
-    `[corpus-tests]`) and confirm that no resolved span changes on NDTHT's
-    `t/` except at `shares_line` sites.
-  - Background: `docs/background.md` §2.1 and §4.1.
 - [ ] `[heading-rule]` **Section introductions are not preambles.**
   - `delete NAME` has taken a section's introductory `text` as the lemma's
     preamble in three NDTHT sessions.
   - `move … before NAME` lands under the heading directly above NAME.
-  - Implement the rules in `docs/fr/delete.md` (§"The preamble rule") and
-    `docs/fr/move.md` (§"The landing rule") in one addressing helper.
-  - Report the attribution upstream as U7.
+  - The rules are `docs/fr/delete.md` §"The preamble rule" and
+    `docs/fr/move.md` §"The landing rule".
+  - U7 (`upstream/query-preamble-section-intro.md`) still stands on
+    isabelle-query 1.1.0 (checked 2026-10-23): its example still gives
+    `first_in_section` the section's `text` as `preamble=(9, 9)`, with no
+    field to tell the two apart.
+  - **Open, for Andras:** whether this waits for U7.  Building a local
+    helper means deriving locally what U7 asks `query` to expose.  The
+    alternative is to post U7, and have `block` only consume the field,
+    turning it into a refusal or an explicit `--with-preamble` /
+    `--no-preamble` choice.  `--no-preamble` is the stopgap meanwhile.
 - [ ] `[corpus-tests]` **Read-only tests against real trees**, under a pytest
   marker `corpus` and skipped when the tree is absent:
   - NDTHT `~/projects/ndtht/t/`;
   - the AFP `~/repos/afp/thys`.
 
   Checks:
-  - every entry name resolves, or is refused for a stated reason;
-  - no resolved span overreaches into the next entry's doc block;
+  - ~~every entry name resolves, or is refused for a stated reason;~~
+  - ~~no resolved span overreaches into the next entry's doc block;~~
   - `emit` of every span concatenates back to the file.
+
+  The first two are `tests/test_corpus.py` (2026-10-23).  They cover NDTHT's
+  `t/` and the 29 AFP entries that declare `keywords`, about a minute in
+  all.  Breaking `resolve_entry` back to 0.1.0's clip fails them on the four
+  AFP overreaches.  Still open: the concatenation check, and whether the
+  whole AFP is worth a slower opt-in run.
 
   Never write into either tree.
 - [ ] `[module-split]` **Split `cli.py`** into addressing, splicing, verbs and

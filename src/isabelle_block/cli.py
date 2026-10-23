@@ -28,9 +28,9 @@ A target is `FILE:REGION`, one token, where REGION is:
           output pastes straight in
   A-B     the same, hyphenated
   N       one line -- the locus form `query enclosing` prints
-  NAME    an entry name, resolved through `isabelle_query.api` to the span
-          `query show NAME` calls `src`: the preamble, if the entry has one,
-          through the end of the proof
+  NAME    an entry name, resolved through `isabelle_query.api` to the
+          entry's `cut_span`: its doc preamble, if it has one, through the
+          end of its proof
   all     the whole file; also the meaning of a bare FILE with no `:REGION`
 
 DEST, for `move`/`copy`, is `FILE:LINE`, or `LINE` for the same file, or
@@ -39,14 +39,21 @@ included).  Landing before a *name* is the point of name addressing: hoisting
 a helper above its first user needs no line arithmetic and cannot go stale
 between the `query` call and the edit.
 
-Name resolution reads only the named file's own header, so a theory that
-uses a custom command another theory in its session declares would parse
-wrongly (`isabelle_query.api.parse_theory`'s documented caveat).  So a
-theory that declares `keywords` is refused for name addressing.  Spans never
-touch the parser, so they are unaffected.
+`cut_span` is the span `isabelle_query` documents as the one a tool writes
+through: it holds the entry and no part of another, so it stops before the
+next entry's doc block.  An entry that shares a line with another (two
+declarations on one line) has no such span, and naming it is refused; use a
+line span.
 
-A resolved span runs from the entry's doc block to the last line of its
-proof, and is clipped to stop before the next entry starts.
+Isabelle's keyword table is session-wide, so a theory may use a command that
+another theory's `keywords` declares.  Name resolution therefore parses with
+the table of the file's session.  The session root is `--root DIR` if given,
+otherwise what `isabelle_layout.default_t_dir` finds from the file's
+directory: `$ISABELLE_LAYOUT_ROOT` / `$ISABELLE_QUERY_ROOT`, a
+`.isabelle-layout` / `.isabelle-query` marker, or the nearest `ROOT`.  With
+none of these, the file's own directory stands in, and its theories supply
+the table, as in `query`.  A file in no named session gets a NOTE on stderr
+saying so.  Spans never touch the parser, so they are unaffected.
 
 Modifiers
 ---------
@@ -54,6 +61,8 @@ Modifiers
   --no-trailing-blank    verbatim cut with no blank-seam healing
   --no-preamble          a resolved NAME span starts at the entry, not its
                          doc block
+  --root DIR             the session root whose keyword table NAME
+                         resolution parses with (default: discovered)
   --cut                  (split only) remove the extracted ranges from SRC
   --expect N             (sub, resub, reargs) refuse unless exactly N
                          substitutions are made; nothing is written
@@ -123,54 +132,90 @@ def read_lines(path: Path) -> list[str]:
     return path.read_text().splitlines(keepends=True)
 
 
-def _entries(path: Path):
-    """Every Entry of ``path``, in source order, via isabelle_query.api.
+# `--root DIR`, set by main(); None means discover the root per file.
+_ROOT: Path | None = None
+# One parse per file per run: `--except` and the prose mask ask again, and a
+# parse with a session's keyword table costs a walk of its theory headers.
+# Every verb resolves before it writes, so a cached parse is never stale.
+_SECTIONS: dict = {}
 
-    `parse_theory` and not `parse_root`: a span tool is asked about one file
-    and a session walk would cost seconds per call.  The trade is the
-    documented keyword-table caveat, which is checked rather than assumed.
-    """
+
+def _section(path: Path):
+    """``path`` parsed by `isabelle_query.api.parse_theory`, with the keyword
+    table of the file's session.
+
+    Isabelle's keyword table is session-wide, so a theory can use a command
+    that a sibling theory's `keywords` declares.  Parsed alone, that command
+    is not recognised, and the entry above it swallows it: its span then
+    takes the command's lines too.  Hence `root=`, which builds the table
+    from every theory header under the root, as `query` does.  The root is
+    found by `isabelle_layout.default_t_dir`, the discovery `query` itself
+    uses, unless `--root` names one.  With no `ROOT` file, that is the file's
+    own directory, whose `.thy` files then stand in for a session, again as
+    in `query`.  When the file belongs to no named session, a NOTE says where
+    its keyword table came from."""
+    key = path.resolve()
+    if key in _SECTIONS:
+        return _SECTIONS[key]
     try:
+        from isabelle_layout import default_t_dir
         from isabelle_query.api import parse_theory
-    except ImportError:
-        fail("isabelle_query is not installed (it is a dependency of isabelle-block); "
+    except ImportError as e:
+        fail(f"{e.name} is not installed (a dependency of isabelle-block); "
              "name addressing needs it, spans do not")
-    if re.search(r"^\s*keywords\b", path.read_text(), re.M):
-        fail(f"{path} declares `keywords`; parse_theory sees only this file's "
-             "header, so name addressing is unsafe here -- use a line span")
-    section = parse_theory(path.stem, path)
-    return sorted(section.entries, key=lambda e: e.thy_line)
+    root = _ROOT if _ROOT is not None else default_t_dir(start=key.parent)
+    try:
+        sec = parse_theory(path.stem, path, root=root)
+    except ValueError as e:
+        if _ROOT is not None:
+            fail(f"--root {_ROOT}: {e}")
+        print(f"  NOTE: {path}: {e}; parsed alone, so a command declared by "
+              "another theory's `keywords` is not recognised.  Pass --root "
+              "DIR if it has a session.", file=sys.stderr)
+        sec = parse_theory(path.stem, path)
+    else:
+        if sec.session is None:
+            print(f"  NOTE: {path} is in no session under {root}; its keyword "
+                  f"table comes from the theory headers there.  Pass --root "
+                  "DIR if its session is elsewhere.", file=sys.stderr)
+    _SECTIONS[key] = sec
+    return sec
 
 
-def _entry_lo(e) -> int:
-    """First line of an entry *including* its doc preamble."""
-    return e.preamble[0] if e.preamble else e.thy_line
+def _entries(path: Path):
+    """Every Entry of ``path``, in source order."""
+    return sorted(_section(path).entries, key=lambda e: e.thy_line)
 
 
 def resolve_entry(path: Path, name: str, with_preamble: bool = True
                   ) -> tuple[int, int]:
-    """The span of entry ``name``, clipped off the next entry's preamble.
+    """The span of entry ``name``: its `Entry.cut_span`.
 
-    `query show` calls the unclipped form the `src` span.  Reading one is
-    harmless; *writing through* one is not, so the upper end is taken from
-    the proof's last line and clipped below the next entry's own start.
+    `isabelle_query` documents `cut_span` as the span a tool writes through.
+    It holds this entry and no part of another, so it stops before the next
+    entry's doc block, and it is None when no line span can do that: two
+    declarations on one line (`shares_line`).  That is a refusal here, never
+    a fall-back to a wider span.  `--no-preamble` starts it at the
+    declaration instead of the doc block.
     """
     entries = _entries(path)
-    hits = [i for i, e in enumerate(entries) if e.name == name]
+    hits = [e for e in entries if e.name == name]
     if not hits:
         near = [e.name for e in entries if name in e.name][:5]
         hint = f"; did you mean {', '.join(near)}?" if near else ""
         fail(f"no entry named {name!r} in {path}{hint}")
     if len(hits) > 1:
         fail(f"{len(hits)} entries named {name!r} in {path}; use a line span")
-    i = hits[0]
-    e = entries[i]
-    lo = _entry_lo(e) if with_preamble else e.thy_line
-    hi = e.body_end_line or e.thy_end
-    if i + 1 < len(entries):
-        hi = min(hi, _entry_lo(entries[i + 1]) - 1)
-    hi = max(hi, e.body_end_line or e.thy_line)
-    return lo, hi
+    e = hits[0]
+    span = e.cut_span
+    if span is None:
+        if not e.thy_line:
+            fail(f"entry {name!r} in {path} has no place in the file; "
+                 "use a line span")
+        fail(f"{path}:{e.thy_line}: entry {name!r} shares a line with another "
+             "entry, so no line span holds it alone; use a line span")
+    lo, hi = span
+    return (lo if with_preamble else e.thy_line), hi
 
 
 def parse_target(spec: str, with_preamble: bool = True
@@ -604,8 +649,7 @@ def _prose_mask(path: Path, lo: int, text: str) -> list[tuple[int, int]]:
     that is not a theory."""
     if path.suffix != ".thy":
         return []
-    from isabelle_query.api import parse_theory
-    sec = parse_theory(path.stem, path)
+    sec = _section(path)
     starts = [0]
     for line in text.splitlines(keepends=True):
         starts.append(starts[-1] + len(line))
@@ -908,6 +952,15 @@ def main(argv: list[str] | None = None) -> int:
         if i + 1 >= len(args):
             fail("--except needs an entry NAME")
         opt["except"].append(args[i + 1])
+        del args[i:i + 2]
+    global _ROOT
+    _ROOT = None
+    _SECTIONS.clear()
+    while "--root" in args:
+        i = args.index("--root")
+        if i + 1 >= len(args) or not Path(args[i + 1]).is_dir():
+            fail("--root needs a session root DIR")
+        _ROOT = Path(args[i + 1])
         del args[i:i + 2]
     for flag, key in (("--no-trailing-blank", "absorb"),
                       ("--dry-run", "dry"),
