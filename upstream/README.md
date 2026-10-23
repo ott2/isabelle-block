@@ -18,7 +18,7 @@ requested only for a demonstrated limit.
 | U4 | `query-callers-antiquotations.md` | drafted 2026-10-16 |
 | U5 | `query-implicit-uses.md` | drafted 2026-10-16 |
 | U6 | identifier-boundary helper and keyword table | **deferred**: draft when `rename` phase 1 is built, so the request carries a concrete use |
-| U7 | `query-preamble-section-intro.md` | drafted 2026-10-16; still stands on 1.1.0 (rechecked 2026-10-23) |
+| U7 | `query-preamble-section-intro.md` | **posted** 2026-10-23 as [isabelle-query#28](https://github.com/ott2/isabelle-query/issues/28), rechecked against 1.1.0 |
 | U8 | `<toplevel>` tsv rows | **fixed in 0.9.8**: rows carry theory, session and a `TOPLEVEL` tag.  NDTHT's draft `upstream/query-callers-batch.md` is obsolete |
 | U9 | bound names as call-graph nodes | **deferred**: draft when `rename` phase 3 (constructor case names) is built |
-| U10 | `query-same-line-declaration.md` | drafted 2026-10-23 against 1.1.0.  A declaration after `by …` on one line is missed, and the previous `cut_span` holds it (one AFP site) |
+| U10 | `query-same-line-declaration.md` | **posted** 2026-10-23 as [isabelle-query#29](https://github.com/ott2/isabelle-query/issues/29).  A declaration after `by …` on one line is missed, and the previous `cut_span` holds it (one AFP site) |

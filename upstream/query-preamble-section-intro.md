@@ -1,8 +1,10 @@
 # Draft: isabelle-query — a section's introductory `text` is attributed as the first entry's preamble
 
-**Status:** draft (2026-10-16), **not posted**; for Andras to check.
-Checked against isabelle-query 0.9.8.  This is U7 in `docs/background.md`
-§2.5.
+**Status:** posted 2026-10-23 as
+[isabelle-query#28](https://github.com/ott2/isabelle-query/issues/28), at
+Andras's request.  Drafted against 0.9.8; the posted text was rechecked
+against 1.1.0, which gives the same numbers.  This is U7 in
+`docs/background.md` §2.5.
 
 **Title:** `Entry.preamble` / `cut_span`: tell a section introduction from an
 entry's own doc block

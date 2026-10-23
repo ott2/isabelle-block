@@ -33,8 +33,8 @@ Draft `[upstream-asks]` alongside the work as each gap is hit.
   - `move … before NAME` lands under the heading directly above NAME.
   - The rules are `docs/fr/delete.md` §"The preamble rule" and
     `docs/fr/move.md` §"The landing rule".
-  - U7 (`upstream/query-preamble-section-intro.md`) still stands on
-    isabelle-query 1.1.0 (checked 2026-10-23): its example still gives
+  - U7 is posted as isabelle-query#28 (2026-10-23).  It still stands on
+    isabelle-query 1.1.0: its example still gives
     `first_in_section` the section's `text` as `preamble=(9, 9)`, with no
     field to tell the two apart.
   - **Open, for Andras:** whether this waits for U7.  Building a local

@@ -1,7 +1,8 @@
 # Draft: isabelle-query — a declaration that follows a proof on the same line is not an entry
 
-**Status:** draft (2026-10-23), **not posted**; for Andras to check.
-Checked against isabelle-query 1.1.0.  This is U10.
+**Status:** posted 2026-10-23 as
+[isabelle-query#29](https://github.com/ott2/isabelle-query/issues/29), at
+Andras's request.  Checked against isabelle-query 1.1.0.  This is U10.
 
 **Title:** A `lemma` after `by …` on the same line is missed, and the previous
 entry's `cut_span` takes it
