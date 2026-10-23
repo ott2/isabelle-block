@@ -58,6 +58,12 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   - `_section` parses each file once per run, with its **session's keyword
     table**: `parse_theory(..., root=)`, the root coming from `--root` or
     `isabelle_layout.default_t_dir`, as in `query`.
+  - **A doc block under a heading needs a choice** (Andras, 2026-10-23).
+    When `Entry.preamble_follows_heading` holds, the `text` may be the
+    section's introduction.  A verb that removes the span (`delete`,
+    `move`, `replace`) then refuses until given `--with-preamble` or
+    `--no-preamble`.  `emit` and `copy` remove nothing and keep it.  The
+    rule fires on 8% of NDTHT's entries.
 - **Splicing**: `norm_splice`.  This is the blank-seam healing, which leaves
   exactly one blank line between blocks.  It is the code that looks harmless to
   adjust, and its tests assert properties rather than golden bytes.
@@ -104,7 +110,8 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   `isabelle_query.api`: `parse_theory`, `parse_root`, `Entry`,
   `TheorySection`.  Never import from `isabelle_query.parsing` or `.cli`,
   which move without notice.  The fields used today:
-  - `Entry.name`, `thy_line`, `cut_span` and `runs_into_next`;
+  - `Entry.name`, `thy_line`, `cut_span`, `runs_into_next`, `preamble` and
+    `preamble_follows_heading`;
   - `TheorySection.entries`, `session`, `text_blocks`, `heading_spans` and
     `nonisar_spans`.
 - **`isabelle-layout`** (`>=0.2.2`): `default_t_dir`, the session-root

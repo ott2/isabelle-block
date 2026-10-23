@@ -206,6 +206,78 @@ def test_a_bad_root_refuses(thy, run, snapshot, tmp_path, bad):
     assert r.returncode == 1 and snapshot() == before
 
 
+# FIXTURE with a `text` directly under its subsection, above `gamma_tr`:
+# a section introduction or gamma_tr's own doc block, and nothing says which.
+HEADED = FIXTURE.replace(
+    "subsection \\<open>A heading\\<close>\n\nlemma gamma_tr",
+    "subsection \\<open>A heading\\<close>\n\n"
+    "text \\<open>What this section is for.\\<close>\n\nlemma gamma_tr")
+
+
+@pytest.mark.parametrize("args", [
+    ["delete", "{p}:gamma_tr"],
+    ["move", "{p}:gamma_tr", "before", "alpha"],
+    ["replace", "{p}:gamma_tr", "{n}"],
+])
+def test_text_under_a_heading_is_not_removed_without_a_choice(
+        thy, run, snapshot, tmp_path, args):
+    p = thy("Headed.thy", HEADED)
+    n = tmp_path / "new.txt"
+    n.write_text("lemma replaced: True by simp\n")
+    before = snapshot()
+    r = run(*[a.format(p=p, n=n) for a in args])
+    assert r.returncode == 1 and snapshot() == before
+    assert "--with-preamble" in r.stdout and "--no-preamble" in r.stdout
+
+
+def test_with_preamble_takes_the_text_with_the_entry(thy, run):
+    p = thy("Headed.thy", HEADED)
+    run("delete", f"{p}:gamma_tr", "--with-preamble")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt and "What this section" not in txt
+    assert "subsection" in txt
+
+
+def test_no_preamble_leaves_the_text_under_the_heading(thy, run):
+    p = thy("Headed.thy", HEADED)
+    run("delete", f"{p}:gamma_tr", "--no-preamble")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt
+    assert txt.index("subsection") < txt.index("What this section")
+
+
+def test_move_with_no_preamble_leaves_the_text_behind(thy, run):
+    p = thy("Headed.thy", HEADED)
+    run("move", f"{p}:gamma_tr", "before", "alpha", "--no-preamble")
+    txt = p.read_text()
+    assert txt.index("lemma gamma_tr") < txt.index("lemma alpha")
+    assert txt.index("subsection") < txt.index("What this section")
+
+
+@pytest.mark.parametrize("args", [
+    ["emit", "{p}:gamma_tr"],
+    ["copy", "{p}:gamma_tr", "before", "alpha"],
+])
+def test_verbs_that_remove_nothing_take_the_text_as_usual(thy, run, args):
+    p = thy("Headed.thy", HEADED)
+    r = run(*[a.format(p=p) for a in args])
+    assert r.returncode == 0
+
+
+def test_text_not_under_a_heading_needs_no_choice(thy, run):
+    # alpha's doc block follows `begin`, not a heading: today's behaviour.
+    p = thy("Headed.thy", HEADED)
+    r = run("delete", f"{p}:alpha")
+    assert r.returncode == 0 and "A preamble" not in p.read_text()
+
+
+def test_the_two_choices_together_refuse(thy, run, snapshot):
+    p = thy("Headed.thy", HEADED)
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr", "--with-preamble", "--no-preamble")
+    assert r.returncode == 1 and snapshot() == before
+
+
 MIDLINE = FIXTURE.replace('lemma alpha: "1 = (1::nat)"\n  by simp',
                           'lemma alpha: "1 = (1::nat)"\n  by simp lemma mid: True by simp')
 

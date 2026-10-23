@@ -45,6 +45,12 @@ next entry's doc block.  An entry that shares a line with another (two
 declarations on one line) has no such span, and naming it is refused; use a
 line span.
 
+A doc block directly under a section heading may introduce the section
+rather than document the entry, and the source cannot say which.  There,
+`delete`, `move` and `replace` refuse until told: `--with-preamble` takes
+the text with the entry, and `--no-preamble` leaves it under the heading.
+`emit` and `copy` remove nothing, so they take it as usual.
+
 Isabelle's keyword table is session-wide, so a theory may use a command that
 another theory's `keywords` declares.  Name resolution therefore parses with
 the table of the file's session.  The session root is `--root DIR` if given,
@@ -61,6 +67,8 @@ Modifiers
   --no-trailing-blank    verbatim cut with no blank-seam healing
   --no-preamble          a resolved NAME span starts at the entry, not its
                          doc block
+  --with-preamble        a resolved NAME span keeps its doc block even when
+                         that sits directly under a section heading
   --root DIR             the session root whose keyword table NAME
                          resolution parses with (default: discovered)
   --cut                  (split only) remove the extracted ranges from SRC
@@ -187,16 +195,24 @@ def _entries(path: Path):
     return sorted(_section(path).entries, key=lambda e: e.thy_line)
 
 
-def resolve_entry(path: Path, name: str, with_preamble: bool = True
-                  ) -> tuple[int, int]:
+def resolve_entry(path: Path, name: str, preamble: str = "auto",
+                  removes: bool = False) -> tuple[int, int]:
     """The span of entry ``name``: its `Entry.cut_span`.
 
     `isabelle_query` documents `cut_span` as the span a tool writes through.
     It holds this entry and no part of another, so it stops before the next
     entry's doc block, and it is None when no line span can do that: two
     declarations on one line (`shares_line`).  That is a refusal here, never
-    a fall-back to a wider span.  `--no-preamble` starts it at the
-    declaration instead of the doc block.
+    a fall-back to a wider span.
+
+    ``preamble`` is "auto", "with" (`--with-preamble`) or "without"
+    (`--no-preamble`, which starts the span at the declaration).  A doc
+    preamble directly under a section heading (`preamble_follows_heading`)
+    may introduce the section rather than document the entry, and the
+    source cannot say which.  So a verb that ``removes`` the span (delete,
+    move, replace) refuses there in "auto" and asks for one of the two.
+    Binding it either way by default loses text silently some of the time.
+    NDTHT lost a section's introduction that way three times.
     """
     entries = _entries(path)
     hits = [e for e in entries if e.name == name]
@@ -221,12 +237,22 @@ def resolve_entry(path: Path, name: str, with_preamble: bool = True
         fail(f"{path}:{e.thy_line}: entry {name!r} shares a line with another "
              "entry, so no line span holds it alone; use a line span")
     lo, hi = span
-    return (lo if with_preamble else e.thy_line), hi
+    if preamble == "without":
+        return e.thy_line, hi
+    if removes and preamble == "auto" and e.preamble and e.preamble_follows_heading:
+        a, b = e.preamble
+        fail(f"{path}:{a}: the text at lines {a}..{b} above {name!r} sits "
+             "directly under a section heading, so it may introduce the "
+             f"section rather than document {name!r}.  Say which: "
+             "--with-preamble takes it with the entry, --no-preamble leaves "
+             "it under the heading")
+    return lo, hi
 
 
-def parse_target(spec: str, with_preamble: bool = True
+def parse_target(spec: str, preamble: str = "auto", removes: bool = False
                  ) -> tuple[Path, int, int]:
-    """`FILE`, `FILE:A..B`, `FILE:A-B` or `FILE:NAME` -> (path, lo, hi)."""
+    """`FILE`, `FILE:A..B`, `FILE:A-B` or `FILE:NAME` -> (path, lo, hi).
+    ``preamble`` and ``removes`` apply to a NAME; see `resolve_entry`."""
     path_s, sep, region = spec.rpartition(":")
     if not sep:
         path, region = Path(spec), "all"
@@ -249,7 +275,7 @@ def parse_target(spec: str, with_preamble: bool = True
         # loci as `THY:LINE`, and locations and spans share one grammar.
         lo = hi = int(region)
     else:
-        lo, hi = resolve_entry(path, region, with_preamble)
+        lo, hi = resolve_entry(path, region, preamble, removes)
     if lo < 1 or hi < lo:
         fail(f"bad region {region!r} -> {lo}..{hi}")
     if hi > n:
@@ -333,7 +359,8 @@ USAGE = {
 def v_move(args, opt, copy: bool) -> int:
     if len(args) != 3 or args[1] != "before":
         fail(f"usage: {USAGE['copy' if copy else 'move']}")
-    src, start, end = parse_target(args[0], not opt["no_preamble"])
+    # A move takes the block away from where it was; a copy leaves it there.
+    src, start, end = parse_target(args[0], opt["preamble"], removes=not copy)
     dst, target = parse_dest(args[2], src)
     verb = "copied" if copy else "moved"
     absorb = opt["absorb"]
@@ -401,7 +428,7 @@ def v_move(args, opt, copy: bool) -> int:
 def v_delete(args, opt) -> int:
     if len(args) != 1:
         fail(f"usage: {USAGE['delete']}")
-    path, start, end = parse_target(args[0], not opt["no_preamble"])
+    path, start, end = parse_target(args[0], opt["preamble"], removes=True)
     lines = read_lines(path)
     n = len(lines)
     end_idx = end
@@ -418,7 +445,7 @@ def v_delete(args, opt) -> int:
 def v_emit(args, opt) -> int:
     if len(args) != 1:
         fail(f"usage: {USAGE['emit']}")
-    path, start, end = parse_target(args[0], not opt["no_preamble"])
+    path, start, end = parse_target(args[0], opt["preamble"])
     block = read_lines(path)[start - 1:end]
     sys.stdout.write("".join(block))
     # stdout is the block, verbatim, so that `emit ... > FILE` is a clean
@@ -432,7 +459,7 @@ def v_emit(args, opt) -> int:
 def v_replace(args, opt) -> int:
     if len(args) != 2:
         fail(f"usage: {USAGE['replace']}")
-    path, start, end = parse_target(args[0], not opt["no_preamble"])
+    path, start, end = parse_target(args[0], opt["preamble"], removes=True)
     newpath = Path(args[1])
     new = read_lines(newpath)
     if new and not new[-1].endswith("\n"):
@@ -457,14 +484,14 @@ def _regions(targets: list[str], opt) -> list[tuple[Path, int, int]]:
     found: set[str] = set()
     out: list[tuple[Path, int, int]] = []
     for spec in targets:
-        path, lo, hi = parse_target(spec, not opt["no_preamble"])
+        path, lo, hi = parse_target(spec, opt["preamble"])
         cuts = []
         if excl:
             names = {e.name for e in _entries(path)}
             for name in excl:
                 if name in names:
                     found.add(name)
-                    clo, chi = resolve_entry(path, name, not opt["no_preamble"])
+                    clo, chi = resolve_entry(path, name, opt["preamble"])
                     if chi >= lo and clo <= hi:
                         cuts.append((clo, chi))
         cur = lo
@@ -945,8 +972,14 @@ def main(argv: list[str] | None = None) -> int:
         print(f"isabelle-block {__version__}")
         return 0
 
-    opt = {"absorb": True, "dry": False,
-           "no_preamble": False, "cut": False, "expect": None, "except": []}
+    opt = {"absorb": True, "dry": False, "preamble": "auto",
+           "cut": False, "expect": None, "except": []}
+    choices = [f for f in ("--with-preamble", "--no-preamble") if f in args]
+    if len(choices) == 2:
+        fail("--with-preamble and --no-preamble contradict each other")
+    if choices:
+        opt["preamble"] = "with" if choices[0] == "--with-preamble" else "without"
+        args = [a for a in args if a != choices[0]]
     while "--expect" in args:
         i = args.index("--expect")
         if i + 1 >= len(args) or not args[i + 1].isdigit():
@@ -970,7 +1003,6 @@ def main(argv: list[str] | None = None) -> int:
         del args[i:i + 2]
     for flag, key in (("--no-trailing-blank", "absorb"),
                       ("--dry-run", "dry"),
-                      ("--no-preamble", "no_preamble"),
                       ("--cut", "cut")):
         while flag in args:
             args.remove(flag)

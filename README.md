@@ -57,6 +57,10 @@ included.
   substitutions are made.
 - `--except NAME` leaves an entry out of every region.
 - `--no-preamble` starts a resolved span at the entry, not its doc block.
+- `--with-preamble` keeps the doc block even when it sits directly under a
+  section heading.  Such a `text` may introduce the section rather than
+  document the entry, and the source cannot say which.  So there, `delete`,
+  `move` and `replace` refuse until you choose one of these two flags.
 - `--root DIR` names the session root whose keyword table name resolution
   uses.  By default it is discovered as `query` discovers it: an
   environment variable, a `.isabelle-query` marker, or the nearest `ROOT`.

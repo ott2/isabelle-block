@@ -18,8 +18,8 @@ Background for a cold start:
 
 ## Suggested order
 
-1. Groundwork: `[heading-rule]`, now that isabelle-query 1.1.1 supplies the
-   fact; one open question on the refusal's rate (see the item).
+1. Groundwork: what remains of `[heading-rule]` (the landing rule and the
+   empty-heading check).
 2. `[fr-rename]` phase 1.
 3. `[fr-safe-delete]` phase 2.
 4. `[fr-checked-move]` phase 1.
@@ -29,23 +29,23 @@ Draft `[upstream-asks]` alongside the work as each gap is hit.
 ## Groundwork
 
 - [ ] `[heading-rule]` **Section introductions are not preambles.**
-  - `delete NAME` has taken a section's introductory `text` as the lemma's
-    preamble in three NDTHT sessions.
-  - `move … before NAME` lands under the heading directly above NAME.
-  - The rules are `docs/fr/delete.md` §"The preamble rule" and
-    `docs/fr/move.md` §"The landing rule".
-  - **Unblocked by isabelle-query 1.1.1** (#28):
-    `Entry.preamble_follows_heading` is true when a heading lies above the
-    preamble with no other entry or proof in between.  `cut_span` is
-    unchanged, so `block` consumes the field instead of deriving it.
-  - **Scale:** NDTHT flags 631 of 1,937 preambles, which is 8% of its 7,676
-    entries.  The AFP flags 8,847 of 32,002 preambles.  A refusal on the
-    flag therefore hits about one named `delete` or `move` in 12 on NDTHT.
-  - **Open, for Andras:** whether a refusal at that rate is right.  It
-    would require `--with-preamble` or `--no-preamble`, as `delete.md`
-    specifies.  Or should it be a NOTE plus a default?  The FR's refusal is
-    the recommendation, because the mistake recurs and is caught only in
-    review.
+  - ~~The preamble rule.~~  Done 2026-10-23.  It is decided (Andras):
+    flag the possible loss, and give a way to choose.  When
+    `Entry.preamble_follows_heading` holds (isabelle-query 1.1.1, #28),
+    `delete`, `move` and `replace` by NAME refuse until given
+    `--with-preamble` (take the text) or `--no-preamble` (leave it under the
+    heading).  `emit` and `copy` remove nothing and keep today's binding.
+    The rule fires on 8% of NDTHT's entries (631 of 1,937 preambles).
+  - **Still to do: the landing rule** (`docs/fr/move.md` §"The landing
+    rule").  `move … before NAME` lands under the heading directly above
+    NAME, between the heading and NAME's possible section introduction.  A
+    block that carries its own heading should land above NAME's heading.
+    That needs "the moved block starts with a heading", from
+    `TheorySection.heading_spans`.
+  - **Still to do: the empty heading** (`docs/fr/delete.md` §"The preamble
+    rule").  Refuse a `delete` that would leave a heading with no entries
+    under it.  It needs a way to say "yes, that is meant" too.  The flag
+    for that is not designed yet.
 - [ ] `[corpus-tests]` **Read-only tests against real trees**, under a pytest
   marker `corpus` and skipped when the tree is absent:
   - NDTHT `~/projects/ndtht/t/`;
