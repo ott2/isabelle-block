@@ -180,7 +180,9 @@ recommendation for each) and a test plan.
     (`pip install git+https://github.com/ott2/isabelle-block@v0.1.0`) works
     in a fresh venv.
   - **v0.1.1 released 2026-10-23** (`b32c74d`): `[cut-span]`.  The tag
-    install works in a fresh Python 3.15 venv.  `main` is now 0.1.2.dev0.
+    install works in a fresh Python 3.15 venv.
+  - **v0.1.2 released 2026-10-24** (`3b42ce1`): `[heading-rule]` and the
+    isabelle-query 1.1.1 floor.  `main` is now 0.1.3.dev0.
   - The first PyPI upload will be a later version, not 0.1.0.  Steps 4 and 6
     below then apply to that version.  When it happens, switch the README's
     install line back to `pip install isabelle-block`.
