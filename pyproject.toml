@@ -28,8 +28,10 @@ classifiers = [
 ]
 dependencies = [
     # 1.1.0: an entry no longer ends at a heading inside its own proof
-    # [early-end], so a cut_span written through holds the whole proof.
-    "isabelle-query>=1.1.0",
+    # [early-end].  1.1.1: a declaration in mid-line is an entry (#29), so no
+    # cut_span holds a second lemma.  Both keep a span written through to
+    # one entry.
+    "isabelle-query>=1.1.1",
     # default_t_dir, the session-root discovery `query` itself uses.
     "isabelle-layout>=0.2.2",
 ]

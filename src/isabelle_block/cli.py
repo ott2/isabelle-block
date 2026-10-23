@@ -212,6 +212,12 @@ def resolve_entry(path: Path, name: str, with_preamble: bool = True
         if not e.thy_line:
             fail(f"entry {name!r} in {path} has no place in the file; "
                  "use a line span")
+        if e.runs_into_next:
+            # This entry's own proof ends on the line where the next
+            # declaration starts (`by simp lemma b: …`).
+            fail(f"{path}:{e.thy_line}: entry {name!r} ends on the line where "
+                 "the next declaration starts, so no line span holds it "
+                 "alone; use a line span")
         fail(f"{path}:{e.thy_line}: entry {name!r} shares a line with another "
              "entry, so no line span holds it alone; use a line span")
     lo, hi = span

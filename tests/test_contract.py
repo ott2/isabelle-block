@@ -206,6 +206,25 @@ def test_a_bad_root_refuses(thy, run, snapshot, tmp_path, bad):
     assert r.returncode == 1 and snapshot() == before
 
 
+MIDLINE = FIXTURE.replace('lemma alpha: "1 = (1::nat)"\n  by simp',
+                          'lemma alpha: "1 = (1::nat)"\n  by simp lemma mid: True by simp')
+
+
+@pytest.mark.parametrize("name, why", [
+    ("alpha", "ends on the line where the next declaration starts"),
+    ("mid", "shares a line"),
+])
+def test_a_declaration_in_mid_line_refuses_both_entries(thy, run, snapshot, name, why):
+    # isabelle-query#29: `by simp lemma mid: …` declares `mid`.  Before 1.1.1
+    # `mid` was no entry and `alpha`'s span held it, so deleting `alpha`
+    # deleted two lemmas.
+    p = thy("Mid.thy", MIDLINE)
+    before = snapshot()
+    r = run("delete", f"{p}:{name}")
+    assert r.returncode == 1 and why in r.stdout
+    assert snapshot() == before
+
+
 def test_an_entry_sharing_a_line_refuses(thy, run, snapshot):
     # isabelle_query's own case: a one-line `axiomatization where F1: ...`
     # is two entries on one line, so no line span holds either alone.

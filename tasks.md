@@ -18,7 +18,8 @@ Background for a cold start:
 
 ## Suggested order
 
-1. Groundwork: `[heading-rule]`, once Andras has decided how (see the item).
+1. Groundwork: `[heading-rule]`, now that isabelle-query 1.1.1 supplies the
+   fact; one open question on the refusal's rate (see the item).
 2. `[fr-rename]` phase 1.
 3. `[fr-safe-delete]` phase 2.
 4. `[fr-checked-move]` phase 1.
@@ -33,15 +34,18 @@ Draft `[upstream-asks]` alongside the work as each gap is hit.
   - `move … before NAME` lands under the heading directly above NAME.
   - The rules are `docs/fr/delete.md` §"The preamble rule" and
     `docs/fr/move.md` §"The landing rule".
-  - U7 is posted as isabelle-query#28 (2026-10-23).  It still stands on
-    isabelle-query 1.1.0: its example still gives
-    `first_in_section` the section's `text` as `preamble=(9, 9)`, with no
-    field to tell the two apart.
-  - **Open, for Andras:** whether this waits for U7.  Building a local
-    helper means deriving locally what U7 asks `query` to expose.  The
-    alternative is to post U7, and have `block` only consume the field,
-    turning it into a refusal or an explicit `--with-preamble` /
-    `--no-preamble` choice.  `--no-preamble` is the stopgap meanwhile.
+  - **Unblocked by isabelle-query 1.1.1** (#28):
+    `Entry.preamble_follows_heading` is true when a heading lies above the
+    preamble with no other entry or proof in between.  `cut_span` is
+    unchanged, so `block` consumes the field instead of deriving it.
+  - **Scale:** NDTHT flags 631 of 1,937 preambles, which is 8% of its 7,676
+    entries.  The AFP flags 8,847 of 32,002 preambles.  A refusal on the
+    flag therefore hits about one named `delete` or `move` in 12 on NDTHT.
+  - **Open, for Andras:** whether a refusal at that rate is right.  It
+    would require `--with-preamble` or `--no-preamble`, as `delete.md`
+    specifies.  Or should it be a NOTE plus a default?  The FR's refusal is
+    the recommendation, because the mistake recurs and is caught only in
+    review.
 - [ ] `[corpus-tests]` **Read-only tests against real trees**, under a pytest
   marker `corpus` and skipped when the tree is absent:
   - NDTHT `~/projects/ndtht/t/`;

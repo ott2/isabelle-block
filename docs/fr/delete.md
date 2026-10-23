@@ -81,9 +81,10 @@ When the resolved preamble directly follows a section heading, **refuse**
 and ask for `--with-preamble` or `--no-preamble`.  Do the same when deleting
 the entry would leave a heading with no entries.
 
-The proper fix is upstream: a preamble field that distinguishes an entry's own
-doc block from a section introduction (U7).  The refusal stays useful until
-that lands.
+The fact comes from upstream: isabelle-query 1.1.1 (#28, U7) provides
+`Entry.preamble_follows_heading`.  The source cannot say which of the two a
+`text` under a heading is, so the refusal, an explicit choice, is the rule
+itself and not a stopgap.
 
 The same rule fixes `move … before NAME`, which lands *under* a heading
 directly above NAME.  See `move.md`.
@@ -93,8 +94,8 @@ directly above NAME.  See `move.md`.
 1. **Phase 1**: switch addressing to `Entry.cut_span`, and add the preamble
    rule.  Both help today's `delete` and `move` before any caller check
    exists.  The switch is done (2026-10-23, with the session keyword table).
-   The preamble rule is `tasks.md` `[heading-rule]`, and waits on how U7 is
-   handled.
+   The preamble rule is `tasks.md` `[heading-rule]`, which can consume
+   `preamble_follows_heading` (isabelle-query 1.1.1).
 2. **Phase 2**: the caller check over a set of names, done in one batch:
    - classes 1 and 2 from `query callers -f tsv`, one subprocess for all
      names (see D3);

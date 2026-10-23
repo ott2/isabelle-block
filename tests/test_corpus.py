@@ -64,7 +64,8 @@ def test_every_name_resolves_inside_its_entry_or_is_refused_for_a_reason(tree):
                     lo, hi = cli.resolve_entry(p, e.name)
             except SystemExit:
                 refused += 1
-                if "shares a line" not in out.getvalue():
+                if not any(why in out.getvalue() for why in (
+                        "shares a line", "where the next declaration starts")):
                     bad.append(f"{p}:{e.name}: refused: {out.getvalue().strip()}")
                 continue
             resolved += 1

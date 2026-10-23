@@ -98,12 +98,13 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
 
 ## Dependencies
 
-- **`isabelle-query`** (`>=1.1.0`, for the `[early-end]` fix: an entry no
-  longer ends at a heading inside its own proof).  Import only from
+- **`isabelle-query`** (`>=1.1.1`).  1.1.0's `[early-end]` fix stops an entry
+  ending at a heading inside its own proof.  1.1.1 (#29) makes a mid-line
+  declaration an entry, so no `cut_span` holds a second lemma.  Import only from
   `isabelle_query.api`: `parse_theory`, `parse_root`, `Entry`,
   `TheorySection`.  Never import from `isabelle_query.parsing` or `.cli`,
   which move without notice.  The fields used today:
-  - `Entry.name`, `thy_line` and `cut_span`;
+  - `Entry.name`, `thy_line`, `cut_span` and `runs_into_next`;
   - `TheorySection.entries`, `session`, `text_blocks`, `heading_spans` and
     `nonisar_spans`.
 - **`isabelle-layout`** (`>=0.2.2`): `default_t_dir`, the session-root
