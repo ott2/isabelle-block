@@ -61,6 +61,13 @@ included.
   section heading.  Such a `text` may introduce the section rather than
   document the entry, and the source cannot say which.  So there, `delete`,
   `move` and `replace` refuse until you choose one of these two flags.
+- `--keep-heading` / `--with-heading`: deleting the only entry under a
+  heading refuses until you say whether the heading stays (bare) or the
+  whole section goes with the entry.
+
+A block moved `before NAME` that starts with its own heading, of the same or
+higher rank as the heading above NAME, lands above that heading.  So it
+becomes a section beside NAME's, and does not swallow NAME.
 - `--root DIR` names the session root whose keyword table name resolution
   uses.  By default it is discovered as `query` discovers it: an
   environment variable, a `.isabelle-query` marker, or the nearest `ROOT`.

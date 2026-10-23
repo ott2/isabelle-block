@@ -64,6 +64,14 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
     `move`, `replace`) then refuses until given `--with-preamble` or
     `--no-preamble`.  `emit` and `copy` remove nothing and keep it.  The
     rule fires on 8% of NDTHT's entries.
+  - **So does a heading left empty.**  `delete` of a section's only entry
+    refuses until given `--keep-heading` or `--with-heading` (the whole
+    section goes).  It fires on 2.7% of NDTHT's entries.  Section extents
+    and heading ranks come from `TheorySection.outline` and `heading_spans`
+    (`_headings`, `_section_of`).
+  - **The landing rule.**  `move`/`copy … before NAME` lands above NAME's
+    heading when the block starts with a heading of the same or higher
+    rank, and under it otherwise.
 - **Splicing**: `norm_splice`.  This is the blank-seam healing, which leaves
   exactly one blank line between blocks.  It is the code that looks harmless to
   adjust, and its tests assert properties rather than golden bytes.
@@ -112,8 +120,8 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   which move without notice.  The fields used today:
   - `Entry.name`, `thy_line`, `cut_span`, `runs_into_next`, `preamble` and
     `preamble_follows_heading`;
-  - `TheorySection.entries`, `session`, `text_blocks`, `heading_spans` and
-    `nonisar_spans`.
+  - `TheorySection.entries`, `session`, `outline`, `text_blocks`,
+    `heading_spans` and `nonisar_spans`.
 - **`isabelle-layout`** (`>=0.2.2`): `default_t_dir`, the session-root
   discovery `query` uses.  The visibility-checked `move` will also need a
   theory's import closure and session membership from it (see

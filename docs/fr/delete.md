@@ -94,10 +94,11 @@ directly above NAME.  See `move.md`.
 1. **Phase 1**: switch addressing to `Entry.cut_span`, and add the preamble
    rule.  Both help today's `delete` and `move` before any caller check
    exists.  The switch is done (2026-10-23, with the session keyword table).
-   The preamble rule is done (2026-10-23): `--with-preamble` and
-   `--no-preamble` choose, using `preamble_follows_heading`
-   (isabelle-query 1.1.1).  The empty-heading half is still open
-   (`tasks.md` `[heading-rule]`).
+   The preamble rule is done (2026-10-23/24).  `--with-preamble` and
+   `--no-preamble` choose, using `preamble_follows_heading` (isabelle-query
+   1.1.1).  For a section's only entry, `--keep-heading` and
+   `--with-heading` choose whether the bare heading stays or the whole
+   section goes.  A heading with a sub-heading under it is not empty.
 2. **Phase 2**: the caller check over a set of names, done in one batch:
    - classes 1 and 2 from `query callers -f tsv`, one subprocess for all
      names (see D3);

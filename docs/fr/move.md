@@ -84,6 +84,19 @@ replace it with an explicit `--above-heading` option.  This is the same
 heading-awareness as `delete.md`'s preamble rule, and both should live in
 one addressing helper.
 
+**Built 2026-10-24, with two refinements:**
+
+- **Rank.**  The block lands above NAME's heading only when it starts with a
+  heading of the *same or higher* rank.  A `subsubsection` moved before a
+  `subsection`'s first lemma belongs inside that subsection, as in an
+  outline.
+- **No preamble needed.**  The rule applies to any NAME directly under a
+  heading, with or without a doc block, since either way the headed block
+  would otherwise capture NAME.
+
+The helpers are `_headings`, `_heading_directly_above` and
+`_block_heading_level`, shared with `delete`'s empty-heading check.
+
 ## Decisions for Andras (recommendation first)
 
 - **D1.**  Should the check run only for cross-theory moves?  **Yes.**

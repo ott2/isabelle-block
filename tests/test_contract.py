@@ -208,10 +208,13 @@ def test_a_bad_root_refuses(thy, run, snapshot, tmp_path, bad):
 
 # FIXTURE with a `text` directly under its subsection, above `gamma_tr`:
 # a section introduction or gamma_tr's own doc block, and nothing says which.
-HEADED = FIXTURE.replace(
+# SOLO keeps gamma_tr the section's only entry; HEADED adds a second, so the
+# doc-block choice can be tested apart from the empty-heading one.
+SOLO = FIXTURE.replace(
     "subsection \\<open>A heading\\<close>\n\nlemma gamma_tr",
     "subsection \\<open>A heading\\<close>\n\n"
     "text \\<open>What this section is for.\\<close>\n\nlemma gamma_tr")
+HEADED = SOLO.replace("\nend\n", "lemma gamma_two: True by simp\n\nend\n")
 
 
 @pytest.mark.parametrize("args", [
@@ -276,6 +279,114 @@ def test_the_two_choices_together_refuse(thy, run, snapshot):
     before = snapshot()
     r = run("delete", f"{p}:gamma_tr", "--with-preamble", "--no-preamble")
     assert r.returncode == 1 and snapshot() == before
+
+
+# --- an entry alone under its heading ---------------------------------------
+
+def test_deleting_a_sections_only_entry_asks_about_the_heading(thy, run, snapshot):
+    p = thy()   # gamma_tr is all there is under `subsection A heading`
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr")
+    assert r.returncode == 1 and snapshot() == before
+    assert "--with-heading" in r.stdout and "--keep-heading" in r.stdout
+
+
+def test_keep_heading_deletes_only_the_entry(thy, run):
+    p = thy()
+    run("delete", f"{p}:gamma_tr", "--keep-heading")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt and "subsection" in txt
+
+
+def test_with_heading_deletes_the_whole_section(thy, run):
+    p = thy("Solo.thy", SOLO)
+    run("delete", f"{p}:gamma_tr", "--with-heading")
+    txt = p.read_text()
+    assert "subsection" not in txt and "What this section" not in txt
+    assert "lemma gamma_tr" not in txt
+    assert "lemma alpha" in txt and "lemma beta" in txt
+    assert txt.rstrip().endswith("end")
+
+
+def test_keep_heading_still_asks_about_text_under_the_heading(thy, run, snapshot):
+    p = thy("Solo.thy", SOLO)
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr", "--keep-heading")
+    assert r.returncode == 1 and "--with-preamble" in r.stdout
+    assert snapshot() == before
+    run("delete", f"{p}:gamma_tr", "--keep-heading", "--no-preamble")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt
+    assert "subsection" in txt and "What this section" in txt
+
+
+@pytest.mark.parametrize("extra", [
+    ["--with-heading", "--no-preamble"],
+    ["--with-heading", "--keep-heading"],
+])
+def test_contradictory_heading_choices_refuse(thy, run, snapshot, extra):
+    p = thy("Solo.thy", SOLO)
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr", *extra)
+    assert r.returncode == 1 and snapshot() == before
+
+
+def test_a_section_with_a_sub_heading_is_not_emptied(thy, run):
+    p = thy("Nested.thy", FIXTURE.replace(
+        "\nend\n", "\nsubsubsection \\<open>Child\\<close>\n\n"
+                   "lemma child: True by simp\n\nend\n"))
+    r = run("delete", f"{p}:gamma_tr")
+    assert r.returncode == 0 and "subsubsection" in p.read_text()
+
+
+# --- the landing rule ---------------------------------------------------------
+
+TWO_SECTIONS = FIXTURE.replace(
+    "\nend\n", "\nsubsection \\<open>Other\\<close>\n\n"
+               "lemma delta: True by simp\n\nend\n")
+
+
+def _line_of(p, text: str) -> int:
+    return next(i for i, l in enumerate(p.read_text().splitlines(), start=1)
+                if text in l)
+
+
+@pytest.mark.parametrize("verb", ["move", "copy"])
+def test_a_headed_block_lands_above_the_heading_of_its_target(thy, run, verb):
+    p = thy("Two.thy", TWO_SECTIONS)
+    lo, hi = _line_of(p, "Other"), _line_of(p, "lemma delta")
+    r = run(verb, f"{p}:{lo}..{hi}", "before", "gamma_tr")
+    assert r.returncode == 0 and "landing above the heading" in r.stdout
+    lines = p.read_text().splitlines()
+    first = lambda s: next(i for i, l in enumerate(lines) if s in l)
+    assert first("Other") < first("lemma delta") < first("A heading") < first("lemma gamma_tr")
+    _assert_one_blank_around(lines, *_landing(r))
+
+
+def test_a_lemma_lands_under_the_heading_of_its_target(thy, run):
+    p = thy("Two.thy", TWO_SECTIONS)
+    r = run("move", f"{p}:7..8", "before", "gamma_tr")
+    assert "landing above" not in r.stdout
+    txt = p.read_text()
+    assert txt.index("A heading") < txt.index("lemma alpha") < txt.index("lemma gamma_tr")
+
+
+def test_a_lower_ranked_heading_nests_under_the_target_heading(thy, run):
+    p = thy("Low.thy", FIXTURE.replace(
+        "\nend\n", "\nsubsubsection \\<open>Low\\<close>\n\n"
+                   "lemma low: True by simp\n\nend\n"))
+    lo, hi = _line_of(p, "Low"), _line_of(p, "lemma low")
+    r = run("move", f"{p}:{lo}..{hi}", "before", "gamma_tr")
+    assert "landing above" not in r.stdout
+    txt = p.read_text()
+    assert txt.index("A heading") < txt.index("Low") < txt.index("lemma gamma_tr")
+
+
+def test_a_line_destination_is_taken_literally(thy, run):
+    p = thy("Two.thy", TWO_SECTIONS)
+    lo, hi = _line_of(p, "Other"), _line_of(p, "lemma delta")
+    r = run("move", f"{p}:{lo}..{hi}", "before", _line_of(p, "lemma gamma_tr"))
+    assert "landing above" not in r.stdout
 
 
 MIDLINE = FIXTURE.replace('lemma alpha: "1 = (1::nat)"\n  by simp',

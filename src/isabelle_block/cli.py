@@ -49,7 +49,15 @@ A doc block directly under a section heading may introduce the section
 rather than document the entry, and the source cannot say which.  There,
 `delete`, `move` and `replace` refuse until told: `--with-preamble` takes
 the text with the entry, and `--no-preamble` leaves it under the heading.
-`emit` and `copy` remove nothing, so they take it as usual.
+`emit` and `copy` remove nothing, so they take it as usual.  Likewise
+`delete` of the only entry under a heading (no other entry, no sub-heading)
+refuses until told: `--keep-heading` leaves the bare heading, and
+`--with-heading` removes the whole section.
+
+`move`/`copy … before NAME` lands under the heading NAME sits directly
+beneath.  A block that starts with a heading of its own, of the same or
+higher rank, lands above that heading instead, so it does not take NAME into
+its section.
 
 Isabelle's keyword table is session-wide, so a theory may use a command that
 another theory's `keywords` declares.  Name resolution therefore parses with
@@ -69,6 +77,10 @@ Modifiers
                          doc block
   --with-preamble        a resolved NAME span keeps its doc block even when
                          that sits directly under a section heading
+  --keep-heading         (delete) remove a section's only entry and leave
+                         its heading
+  --with-heading         (delete) remove a section's only entry together
+                         with the whole section: heading, text and entry
   --root DIR             the session root whose keyword table NAME
                          resolution parses with (default: discovered)
   --cut                  (split only) remove the extracted ranges from SRC
@@ -195,6 +207,81 @@ def _entries(path: Path):
     return sorted(_section(path).entries, key=lambda e: e.thy_line)
 
 
+def _find_entry(path: Path, name: str):
+    """The one Entry of ``path`` named ``name``; a refusal for none or two."""
+    entries = _entries(path)
+    hits = [e for e in entries if e.name == name]
+    if not hits:
+        near = [e.name for e in entries if name in e.name][:5]
+        hint = f"; did you mean {', '.join(near)}?" if near else ""
+        fail(f"no entry named {name!r} in {path}{hint}")
+    if len(hits) > 1:
+        fail(f"{len(hits)} entries named {name!r} in {path}; use a line span")
+    return hits[0]
+
+
+# Heading commands by rank: a lower number is a higher heading.
+_HEADING_LEVEL = {"chapter": 0, "section": 1, "subsection": 2,
+                  "subsubsection": 3, "paragraph": 4, "subparagraph": 5}
+
+
+def _headings(path: Path) -> list[tuple[int, int, int]]:
+    """``(first line, last line, level)`` of each section heading in ``path``,
+    in order.  The kind comes from `TheorySection.outline`, the extent from
+    `heading_spans`, both as `isabelle_query` reports them."""
+    if path.suffix != ".thy":
+        return []
+    sec = _section(path)
+    extent = {lo: hi for lo, hi in sec.heading_spans}
+    return sorted((line, extent[line], _HEADING_LEVEL[kind])
+                  for kind, _title, line in sec.outline
+                  if kind in _HEADING_LEVEL and line in extent)
+
+
+def _heading_directly_above(path: Path, e):
+    """The heading ``e`` sits directly under, or None.
+
+    With a doc preamble, `isabelle_query` decides
+    (`preamble_follows_heading`).  Without one, only blank lines may lie
+    between the heading and the declaration."""
+    top = e.preamble[0] if e.preamble else e.thy_line
+    above = [h for h in _headings(path) if h[1] < top]
+    if not above:
+        return None
+    h = above[-1]
+    if e.preamble:
+        return h if e.preamble_follows_heading else None
+    lines = read_lines(path)
+    return h if all(_is_blank(l) for l in lines[h[1]:top - 1]) else None
+
+
+def _section_of(path: Path, e):
+    """``(heading, end)`` for the section holding ``e``: its nearest heading
+    above, and the last line before the next heading of the same or higher
+    rank (or before the theory's `end`).  None outside any section."""
+    hs = _headings(path)
+    above = [h for h in hs if h[1] < e.thy_line]
+    if not above:
+        return None
+    h = above[-1]
+    lines = read_lines(path)
+    ends = [i for i, l in enumerate(lines, start=1) if l.strip() == "end"]
+    end = (ends[-1] if ends else len(lines) + 1) - 1
+    for lo, _hi, level in hs:
+        if lo > h[1] and level <= h[2]:
+            end = lo - 1
+            break
+    return h, end
+
+
+def _block_heading_level(path: Path, lo: int, hi: int):
+    """The level of the heading the block ``lo..hi`` starts with, or None."""
+    lines = read_lines(path)
+    first = next((i for i in range(lo, hi + 1) if not _is_blank(lines[i - 1])),
+                 None)
+    return next((lev for a, _b, lev in _headings(path) if a == first), None)
+
+
 def resolve_entry(path: Path, name: str, preamble: str = "auto",
                   removes: bool = False) -> tuple[int, int]:
     """The span of entry ``name``: its `Entry.cut_span`.
@@ -214,15 +301,7 @@ def resolve_entry(path: Path, name: str, preamble: str = "auto",
     Binding it either way by default loses text silently some of the time.
     NDTHT lost a section's introduction that way three times.
     """
-    entries = _entries(path)
-    hits = [e for e in entries if e.name == name]
-    if not hits:
-        near = [e.name for e in entries if name in e.name][:5]
-        hint = f"; did you mean {', '.join(near)}?" if near else ""
-        fail(f"no entry named {name!r} in {path}{hint}")
-    if len(hits) > 1:
-        fail(f"{len(hits)} entries named {name!r} in {path}; use a line span")
-    e = hits[0]
+    e = _find_entry(path, name)
     span = e.cut_span
     if span is None:
         if not e.thy_line:
@@ -249,10 +328,8 @@ def resolve_entry(path: Path, name: str, preamble: str = "auto",
     return lo, hi
 
 
-def parse_target(spec: str, preamble: str = "auto", removes: bool = False
-                 ) -> tuple[Path, int, int]:
-    """`FILE`, `FILE:A..B`, `FILE:A-B` or `FILE:NAME` -> (path, lo, hi).
-    ``preamble`` and ``removes`` apply to a NAME; see `resolve_entry`."""
+def _split_target(spec: str) -> tuple[Path, str]:
+    """`FILE[:REGION]` -> (path, region), region "all" when absent."""
     path_s, sep, region = spec.rpartition(":")
     if not sep:
         path, region = Path(spec), "all"
@@ -264,6 +341,18 @@ def parse_target(spec: str, preamble: str = "auto", removes: bool = False
             path, region = Path(spec), "all"
         else:
             fail(f"not a file: {path}")
+    return path, region
+
+
+def _is_name(region: str) -> bool:
+    return region != "all" and not SPAN_RE.match(region) and not region.isdigit()
+
+
+def parse_target(spec: str, preamble: str = "auto", removes: bool = False
+                 ) -> tuple[Path, int, int]:
+    """`FILE`, `FILE:A..B`, `FILE:A-B` or `FILE:NAME` -> (path, lo, hi).
+    ``preamble`` and ``removes`` apply to a NAME; see `resolve_entry`."""
+    path, region = _split_target(spec)
     n = len(read_lines(path))
     if region == "all":
         return path, 1, n
@@ -283,17 +372,18 @@ def parse_target(spec: str, preamble: str = "auto", removes: bool = False
     return path, lo, hi
 
 
-def parse_dest(spec: str, src: Path) -> tuple[Path, int]:
-    """`LINE`, `NAME`, `FILE:LINE` or `FILE:NAME` -> (path, line)."""
+def parse_dest(spec: str, src: Path):
+    """`LINE`, `NAME`, `FILE:LINE` or `FILE:NAME` -> (path, line, entry).
+    ``entry`` is the named Entry, or None for a LINE."""
     path_s, sep, where = spec.rpartition(":")
     if sep and Path(path_s).is_file():
         path = Path(path_s)
     else:
         path, where = src, spec
     if where.isdigit():
-        return path, int(where)
+        return path, int(where), None
     lo, _ = resolve_entry(path, where)
-    return path, lo
+    return path, lo, _find_entry(path, where)
 
 
 # --- splice helpers --------------------------------------------------------
@@ -361,7 +451,21 @@ def v_move(args, opt, copy: bool) -> int:
         fail(f"usage: {USAGE['copy' if copy else 'move']}")
     # A move takes the block away from where it was; a copy leaves it there.
     src, start, end = parse_target(args[0], opt["preamble"], removes=not copy)
-    dst, target = parse_dest(args[2], src)
+    dst, target, dest_entry = parse_dest(args[2], src)
+    # The landing rule.  `before NAME` lands under the heading NAME sits
+    # directly beneath, which suits a lemma joining that section.  A block
+    # that starts with its own heading of the same or higher rank is a
+    # section of its own, though, and landing it there would capture NAME
+    # under it.  So it lands above NAME's heading instead.  A lower-ranked
+    # heading (a subsubsection before a subsection's first lemma) still
+    # nests under NAME's heading, as it would in an outline.
+    if dest_entry is not None:
+        h = _heading_directly_above(dst, dest_entry)
+        level = _block_heading_level(src, start, end) if h else None
+        if h is not None and level is not None and level <= h[2]:
+            target = h[0]
+            print(f"  landing above the heading at {dst}:{h[0]}: the block "
+                  "starts with a heading of its own")
     verb = "copied" if copy else "moved"
     absorb = opt["absorb"]
     intra = src.resolve() == dst.resolve()
@@ -425,10 +529,56 @@ def v_move(args, opt, copy: bool) -> int:
     return 0
 
 
+def _emptied_section(spec: str, opt):
+    """For `delete FILE:NAME`: NAME's whole section ``(lo, hi)`` when
+    `--with-heading` is to remove it, else None.
+
+    A section whose only content is NAME (no other entry, no sub-heading)
+    would be left as a bare heading.  Whether that heading should go too is
+    the author's call, so in "auto" this refuses and offers both:
+    `--keep-heading` deletes only the entry, and `--with-heading` deletes the
+    section, from its heading to the line before the next heading of the
+    same or higher rank, trailing blanks aside."""
+    path, region = _split_target(spec)
+    if not _is_name(region) or path.suffix != ".thy":
+        return None
+    e = _find_entry(path, region)
+    found = _section_of(path, e) if e.thy_line else None
+    if found is None:
+        return None
+    (h_lo, h_hi, h_level), s_end = found
+    others = [x for x in _entries(path)
+              if x is not e and x.thy_line and h_hi < x.thy_line <= s_end]
+    children = [h for h in _headings(path) if h_hi < h[0] <= s_end and h[2] > h_level]
+    if others or children:
+        return None
+    lines = read_lines(path)
+    while s_end > h_lo and _is_blank(lines[s_end - 1]):
+        s_end -= 1
+    if opt["heading"] == "keep":
+        return None
+    if opt["heading"] == "auto":
+        fail(f"{path}:{h_lo}: {region!r} is the only entry under the heading at "
+             f"line {h_lo}, so deleting it leaves that heading empty.  Say "
+             f"which: --with-heading deletes the whole section (lines "
+             f"{h_lo}..{s_end}), --keep-heading deletes only the entry")
+    if opt["preamble"] == "without":
+        fail("--with-heading deletes the whole section, text included, so "
+             "--no-preamble cannot leave the entry's text behind")
+    return h_lo, s_end
+
+
 def v_delete(args, opt) -> int:
     if len(args) != 1:
         fail(f"usage: {USAGE['delete']}")
-    path, start, end = parse_target(args[0], opt["preamble"], removes=True)
+    section = _emptied_section(args[0], opt)
+    if section is not None:
+        # --with-heading: the section goes whole, its heading and text
+        # included, so its doc block needs no separate choice.
+        path, _, hi = parse_target(args[0], "with", removes=True)
+        start, end = section[0], max(section[1], hi)
+    else:
+        path, start, end = parse_target(args[0], opt["preamble"], removes=True)
     lines = read_lines(path)
     n = len(lines)
     end_idx = end
@@ -972,14 +1122,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"isabelle-block {__version__}")
         return 0
 
-    opt = {"absorb": True, "dry": False, "preamble": "auto",
+    opt = {"absorb": True, "dry": False, "preamble": "auto", "heading": "auto",
            "cut": False, "expect": None, "except": []}
-    choices = [f for f in ("--with-preamble", "--no-preamble") if f in args]
-    if len(choices) == 2:
-        fail("--with-preamble and --no-preamble contradict each other")
-    if choices:
-        opt["preamble"] = "with" if choices[0] == "--with-preamble" else "without"
-        args = [a for a in args if a != choices[0]]
+    # Each pair is one choice, asked for when text could otherwise be lost
+    # or orphaned; giving both halves of a pair is a contradiction.
+    for key, pair, values in (
+            ("preamble", ("--with-preamble", "--no-preamble"), ("with", "without")),
+            ("heading", ("--with-heading", "--keep-heading"), ("with", "keep"))):
+        given = [f for f in pair if f in args]
+        if len(given) == 2:
+            fail(f"{pair[0]} and {pair[1]} contradict each other")
+        if given:
+            opt[key] = values[pair.index(given[0])]
+            args = [a for a in args if a != given[0]]
     while "--expect" in args:
         i = args.index("--expect")
         if i + 1 >= len(args) or not args[i + 1].isdigit():
