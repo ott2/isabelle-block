@@ -172,63 +172,20 @@ recommendation for each) and a test plan.
 
 ## Release and switch-over
 
-- [ ] `[first-release]` **The first release on PyPI**, with Andras's go-ahead
-  at each outward step.
-  - **PyPI is postponed** (Andras, 2026-10-22) until the standalone tool has
-    seen more use, since glitches are expected.  v0.1.0 is a GitHub-only
-    release: tag and Release, and the README installs from the tag.
-  - **v0.1.0 released 2026-10-22** (`867adad`).  The workflow published the
-    Release from the commit message, and an install from the tag
-    (`pip install git+https://github.com/ott2/isabelle-block@v0.1.0`) works
-    in a fresh venv.
-  - **v0.1.1 released 2026-10-23** (`b32c74d`): `[cut-span]`.  The tag
-    install works in a fresh Python 3.15 venv.
-  - **v0.1.2 released 2026-10-24** (`3b42ce1`): `[heading-rule]` and the
-    isabelle-query 1.1.1 floor.
-  - **v0.1.3 released 2026-10-24**: issue #1, the landing choice
-    (`--land-above-text` / `--land-below-text`) and one FAIL for every
-    open choice.  `main` is now 0.1.4.dev0.
-  - The first PyPI upload will be a later version, not 0.1.0.  Steps 4 and 6
-    below then apply to that version.  When it happens, switch the README's
-    install line back to `pip install isabelle-block`.
-
-  Steps:
-  1. ~~Check that the name `isabelle-block` is free on PyPI.~~  Done
-     2026-10-21 (404).  Recheck just before uploading.
-  2. ~~Andras creates `github.com/ott2/isabelle-block`.~~  Done 2026-10-22,
-     and `main` was pushed through `45dc534`.
-  3. ~~Copy `.github/workflows/release.yml` from `~/projects/isabelle-layout`,
-     and adapt it.~~  Done 2026-10-22.  Only the Release title differs from
-     the siblings' workflows.  The runbook is this repository's own, shorter
-     `docs/publishing.md`, not a copy of isabelle-layout's (Andras,
-     2026-10-22: that one carries an old to-do list).  Its build step was
-     tried on 2026-10-22, and found the sdist shipping
-     `docs/prior-art/README.md` and `upstream/README.md`.  The `include`
-     patterns are now anchored.
-  4. ~~The first-upload credential.~~  Settled (Andras, 2026-10-22): the
-     upload is `twine upload -r pypi-isabelle-block …`, a repository entry in
-     Andras's `~/.pypirc` (`docs/publishing.md` §3).
-  5. ~~Check Python 3.9 compatibility statically.~~  Done 2026-10-22: the
-     `ast` check in `docs/publishing.md` §1 passes.  The two modules without
-     the `__future__` import have no annotations.
-  6. Follow `docs/publishing.md`: drop `.dev0` and write the release commit,
-     then build (§2), then tag, push and upload (§3, Andras).
-
-  The order is settled (Andras, 2026-10-21).  0.1.0 ships after the
-  contract tests (`tests/test_contract.py`) and before `[cut-span]`, so
-  `[cut-span]` starts from a released, tested baseline.  The step 1 check was
-  done the same day: PyPI returns 404 for `isabelle-block`.  Recheck it just
-  before uploading.
-  - For the release notes, the changes since `bin/block.py`:
-    - `emit` now prints `PASS:` on stderr;
-    - `split` no longer leaves earlier parts behind when a later spec is
-      refused;
-    - a crash ends in `FAIL:`.
-
-    An NDTHT script that captures `emit` with `2>&1` would see the new line.
-- [ ] `[ndtht-switchover]` **Point NDTHT at the package**, once it is on PyPI.
-  This is done in NDTHT, not here.
-  - Add a floor `isabelle-block>=0.1.0` to `requirements.txt`, with a comment
+- [x] `[first-release]` **On PyPI since 0.1.2** (Andras's uploads; 0.1.2 and
+  0.1.3 are there, checked with `pip index versions --no-cache-dir` on
+  2026-10-24).  Earlier: v0.1.0 (2026-10-22, `867adad`) and v0.1.1
+  (2026-10-23, `b32c74d`) were GitHub-only, while PyPI was postponed.
+  v0.1.2 (`3b42ce1`) brought `[heading-rule]`, and v0.1.3 (`4c0aadc`) issue
+  #1.  The process is `docs/publishing.md`; the upload is `twine upload -r
+  pypi-isabelle-block`, from Andras's `~/.pypirc`.
+  - The README shown on PyPI is the one in the uploaded version.  So 0.1.3's
+    PyPI page still says "not on PyPI yet" (#2), until the next upload.
+  - `pip index versions` may serve a stale list from pip's cache just after
+    an upload; `--no-cache-dir` sees the new version.
+- [ ] `[ndtht-switchover]` **Point NDTHT at the package**.  Unblocked: it is on
+  PyPI since 0.1.2.  This is done in NDTHT, not here.
+  - Add a floor `isabelle-block>=0.1.3` (or later) to `requirements.txt`, with a comment
     in its house style.
   - Delete `bin/block.py`.
   - Rewrite every `bin/block.py` reference as `block`.  The edit list is

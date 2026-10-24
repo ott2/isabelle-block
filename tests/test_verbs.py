@@ -86,6 +86,42 @@ def test_sub_applies_every_region_of_one_file(thy, run):
     assert txt.count("by auto") == 2 and txt.count("by simp") == 1
 
 
+# A newline is part of a literal (#2): matched line by line, this OLD never
+# occurred, and the refusal said so of text that was in the file verbatim.
+JOIN_OLD, JOIN_NEW = '"\n  by simp', '" by simp'
+
+
+def test_sub_matches_an_old_that_spans_lines(thy, run):
+    p = thy()
+    n = len(p.read_text().splitlines())
+    run("sub", JOIN_OLD, JOIN_NEW, f"{p}:7..8", f"{p}:16..17")
+    txt = p.read_text()
+    assert 'lemma alpha: "1 = (1::nat)" by simp' in txt
+    assert 'lemma gamma_tr: "3 = (3::nat)" by simp' in txt
+    assert 'lemma beta: "2 = (2::nat)"\n  by simp' in txt
+    assert len(txt.splitlines()) == n - 2
+
+
+def test_sub_reads_a_multi_line_old_from_a_file(thy, run, tmp_path):
+    p = thy()
+    old = tmp_path / "old.txt"
+    old.write_text(JOIN_OLD + "\n")   # the trailing newline is dropped
+    run("sub", f"@{old}", JOIN_NEW, f"{p}:7..8", "--expect", "1")
+    assert 'lemma alpha: "1 = (1::nat)" by simp' in p.read_text()
+
+
+@pytest.mark.parametrize("old, region", [
+    ('"\n  by auto', "all"),     # not in the file
+    (JOIN_OLD, "7"),             # in the file, but across the region's end
+])
+def test_sub_multi_line_old_refuses_outside_its_region(thy, run, old, region):
+    p = thy()
+    before = p.read_text()
+    r = run("sub", old, JOIN_NEW, f"{p}:{region}")
+    assert r.returncode == 1 and p.read_text() == before
+    assert "nowhere" in r.stdout
+
+
 # --- resub --------------------------------------------------------------------
 
 def test_resub_joins_lines_span_confined_bottom_up(thy, run):

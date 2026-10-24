@@ -19,16 +19,12 @@ a lemma up and editing it.
 ## Install
 
 ```sh
-python3 -m pip install git+https://github.com/ott2/isabelle-block@v0.1.3
+python3 -m pip install isabelle-block
 ```
 
 This puts `block` on your `PATH`.  Needs Python 3.9 or later; depends on
 `isabelle-query` and `isabelle-layout`, which pip fetches from PyPI.  It
 needs no Isabelle process.
-
-`isabelle-block` is not on PyPI yet.  It will be published there once the
-standalone tool has seen more use; until then, install a tagged release from
-GitHub as above.
 
 ## Verbs
 
@@ -39,7 +35,7 @@ GitHub as above.
 | `delete FILE:REGION` | excise a block |
 | `emit FILE:REGION` | print a block verbatim |
 | `replace FILE:REGION NEWFILE` | swap a block for a file's contents |
-| `sub OLD NEW FILE[:REGION]...` | literal substring substitution |
+| `sub OLD NEW FILE[:REGION]...` | literal substring substitution; OLD may span lines, and either side may be `@FILE` |
 | `resub PAT NEW FILE[:REGION]...` | regex substitution; a match may span lines |
 | `reargs 'F $1 $2' TMPL FILE[:REGION]...` | rewrite `F`'s applications by their (bracket-aware) arguments; skips prose |
 | `split SRC 'NAME\|IMPORTS\|RANGES'... [--cut]` | cut a theory into several |

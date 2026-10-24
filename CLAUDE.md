@@ -111,7 +111,9 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   refused the declaring theory instead, which parses fine alone, and missed
   the theory that uses the command.  On the AFP, 111 spans were wrong that
   way.  A file in no named session gets a NOTE on stderr.
-- **Literal means literal.**  `sub` is `str.replace` on both sides.  The perl
+- **Literal means literal.**  `sub` is `str.replace` on both sides, and a
+  newline in OLD is literal too (#2): a multi-line OLD goes through
+  `_rewrite_regions`, since it changes the line count.  The perl
   predecessors turned `\<lambda>` into `<lambda>`.  An `@FILE` argument reads a
   pattern or replacement from a file, which is the escape hatch for Isabelle
   symbols: the user's shell is tcsh, and it doubles backslashes on the way in.
@@ -173,8 +175,9 @@ Never write into either tree from this repository.
 
 NDTHT is the first user.  Its main checkout is `~/projects/ndtht`, with a venv
 at `~/projects/ndtht/venv`.  Claude works in a separate worktree at
-`~/projects/claudecode/ndtht`, on `stac/*` branches.  Until the first PyPI
-release, NDTHT installs this package from the sibling directory:
+`~/projects/claudecode/ndtht`, on `stac/*` branches.  The package is on
+PyPI since 0.1.2.  Until NDTHT's switch-over, NDTHT installs it from the
+sibling directory, to try unreleased changes:
 
 ```sh
 ~/projects/ndtht/venv/bin/pip install ~/projects/isabelle-block

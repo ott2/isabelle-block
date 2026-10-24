@@ -724,11 +724,25 @@ def _check_expect(total: int, opt) -> None:
 
 
 def v_sub(args, opt) -> int:
+    """Literal substring replacement (`str.replace`) in each region.  OLD
+    may span lines: a newline in it is matched like any other character.
+    Either argument may be `@FILE`, the way to pass a multi-line OLD or an
+    Isabelle symbol through tcsh.  Zero matches across all targets is a
+    refusal."""
     if len(args) < 3:
         fail(f"usage: {USAGE['sub']}")
-    old, new, targets = args[0], args[1], args[2:]
+    old, new, targets = _arg_text(args[0]), _arg_text(args[1]), args[2:]
     if old == new:
         fail("OLD and NEW are identical")
+    if "\n" in old:
+        # A newline is part of a literal (#2).  Matched line by line, such
+        # an OLD could never occur, and the refusal said it was nowhere when
+        # it was in the file verbatim.  It changes the line count, so it
+        # takes the bottom-up driver that `resub` uses.
+        return _rewrite_regions(
+            targets, opt,
+            lambda _path, _lo, text: (text.replace(old, new), text.count(old), ""),
+            repr(old))
     # Every target is rewritten in memory first: a run that matches nowhere
     # is a mistake (wrong name, wrong span, already renamed), and the report
     # is only honest if no file has been touched by the time it is printed.
