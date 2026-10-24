@@ -32,7 +32,7 @@ needs no Isabelle process.
 |---|---|
 | `move SRC:REGION before DEST` | relocate a block, within a file or between files |
 | `copy SRC:REGION before DEST` | place a copy and keep the source |
-| `delete FILE:REGION` | excise a block |
+| `delete FILE:REGION...` | excise blocks; several regions of one file are resolved together, so their order does not matter |
 | `emit FILE:REGION` | print a block verbatim |
 | `replace FILE:REGION NEWFILE` | swap a block for a file's contents |
 | `sub OLD NEW FILE[:REGION]...` | literal substring substitution; OLD may span lines, and either side may be `@FILE` |

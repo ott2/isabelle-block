@@ -156,7 +156,8 @@ recommendation for each) and a test plan.
   - U7, preamble versus section introduction;
   - U8, `<toplevel>` tsv rows;
   - U9, bound names as call-graph nodes;
-  - U10, a declaration in mid-line.
+  - U10, a declaration in mid-line;
+  - U11, a public resolver for a locus's theory part (isabelle-block#3).
 
   Draft each one when the verb that needs it is being built, so the request
   carries a concrete use.
@@ -169,6 +170,17 @@ recommendation for each) and a test plan.
   - U8 is fixed in 0.9.8.
   - U1 and U3 are conditional.
   - U6 and U9 are deferred to `rename`.
+  - U11 is drafted, checked against 1.2.0, and not yet posted.
+
+- [ ] `[locus-targets]` **Accept a `query` locus as a target** (#3):
+  `Diagonal_Machine:3608..3609`, a theory name or label where a FILE goes.
+  **Upstream only** (Andras, 2026-10-24): no local resolver, since query's
+  label grammar (bare name, `beta/Examples`, `While/Hoare`) is query's to
+  read, and a target resolved to the wrong file is the dangerous failure.
+  Waits on U11.  When it lands: try the FILE as a path first, then the
+  resolver; more than one candidate is a refusal that lists them.  The
+  other half of #3, several `delete` targets in one call, is done
+  (0.1.5).
 
 ## Release and switch-over
 

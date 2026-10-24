@@ -49,6 +49,13 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
   - A target is `FILE:REGION`, one token.  REGION is `A..B`, `A-B`, `N`, an
     entry `NAME`, or `all`.
   - Spans are the grammar `query` prints, so its output pastes straight in.
+    Its THEORY part does not yet: FILE must be a path.  A theory name or
+    label waits on query's resolver (U11, `[locus-targets]`); do not
+    re-derive query's label grammar here (Andras, 2026-10-24).
+  - `delete` takes several targets (#3).  They are resolved against the
+    files on disk and removed as one line set per file, so order does not
+    matter.  An identical region given twice is deleted once, and a
+    partial overlap is refused.
   - A NAME resolves to the entry's **`Entry.cut_span`**, the span
     `isabelle_query` documents as the one a tool writes through.  It runs
     from the doc preamble to the end of the proof, and never reaches the next

@@ -9,7 +9,7 @@ Verbs
 -----
   block move    SRC:REGION before DEST      relocate the block
   block copy    SRC:REGION before DEST      place a copy, source kept
-  block delete  FILE:REGION                 excise the block
+  block delete  FILE:REGION...              excise the block(s)
   block emit    FILE:REGION                 print the block to stdout
   block replace FILE:REGION NEWFILE         swap the block for a file
   block sub     OLD NEW FILE[:REGION]...    literal substring rename
@@ -469,7 +469,7 @@ def write(path: Path, lines: list[str], dry: bool) -> None:
 USAGE = {
     "move": "block move SRC:REGION before DEST",
     "copy": "block copy SRC:REGION before DEST",
-    "delete": "block delete FILE:REGION",
+    "delete": "block delete FILE:REGION...",
     "emit": "block emit FILE:REGION",
     "replace": "block replace FILE:REGION NEWFILE",
     "sub": "block sub OLD NEW FILE[:REGION]...",
@@ -622,28 +622,73 @@ def _emptied_section(spec: str, opt):
     return h_lo, s_end
 
 
-def v_delete(args, opt) -> int:
-    if len(args) != 1:
-        fail(f"usage: {USAGE['delete']}")
-    section = _emptied_section(args[0], opt)
+def _delete_span(spec: str, opt) -> tuple[Path, int, int]:
+    """The ``(path, start, end)`` one `delete` target removes."""
+    section = _emptied_section(spec, opt)
     if section is not None:
         # --with-heading: the section goes whole, its heading and text
         # included, so its doc block needs no separate choice.
-        path, _, hi = parse_target(args[0], "with", removes=True)
-        start, end = section[0], max(section[1], hi)
-    else:
-        path, start, end = parse_target(args[0], opt["preamble"], removes=True)
+        path, _, hi = parse_target(spec, "with", removes=True)
+        return path, section[0], max(section[1], hi)
+    return parse_target(spec, opt["preamble"], removes=True)
+
+
+def v_delete(args, opt) -> int:
+    """Remove each target's lines.  Several targets may name regions of one
+    file, as a `query … --spans` list does (#3).  All are resolved against
+    the files as they are on disk, so their order does not matter; regions
+    that overlap are refused, and every open choice is reported at once.
+    Each region takes one trailing blank line with it, as a single delete
+    does."""
+    if not args:
+        fail(f"usage: {USAGE['delete']}")
+    spans = [_delete_span(spec, opt) for spec in args]
     _settle()
-    lines = read_lines(path)
-    n = len(lines)
-    end_idx = end
-    if opt["absorb"] and end_idx < n and _is_blank(lines[end_idx]):
-        end_idx += 1
-    kept = lines[:start - 1] + lines[end_idx:]
-    write(path, kept, opt["dry"])
-    print(f"  removed {end_idx - start + 1} line(s)")
-    print(f"PASS: deleted {path}[{start}..{end}] ({n} -> {len(kept)} lines)"
-          + (" (dry run)" if opt["dry"] else ""))
+    # One line set per file, from the file on disk.  Deleting region by
+    # region would shift the lines under every later target; a set has no
+    # order to get wrong.
+    by_file: dict[Path, list[tuple[int, int]]] = {}
+    paths: dict[Path, Path] = {}
+    for path, start, end in spans:
+        key = path.resolve()
+        paths.setdefault(key, path)
+        by_file.setdefault(key, []).append((start, end))
+    out: list[tuple[Path, list[str], int]] = []
+    removed: list[str] = []
+    for key, regs in by_file.items():
+        path = paths[key]
+        # The same region twice is one region: a `--spans` list repeats a
+        # clause's span once per unused fact in it.  A partial overlap is
+        # refused, since it suggests spans taken from different versions.
+        twice = len(regs) - len(set(regs))
+        if twice:
+            print(f"  {path}: {twice} repeated region(s), each deleted once")
+        regs = sorted(set(regs))
+        for (_, hi1), (lo2, _) in zip(regs, regs[1:]):
+            if lo2 <= hi1:
+                fail(f"{path}: the regions {regs} overlap; nothing written")
+        lines = read_lines(path)
+        gone: set[int] = set()
+        for start, end in regs:
+            end_idx = end
+            if opt["absorb"] and end_idx < len(lines) and _is_blank(lines[end_idx]):
+                end_idx += 1
+            gone.update(range(start, end_idx + 1))
+            removed.append(f"{path}[{start}..{end}]")
+        kept = [l for i, l in enumerate(lines, start=1) if i not in gone]
+        out.append((path, kept, len(lines)))
+    for path, kept, _n in out:
+        write(path, kept, opt["dry"])
+    dry = " (dry run)" if opt["dry"] else ""
+    if len(spans) == 1:
+        path, kept, n = out[0]
+        print(f"  removed {n - len(kept)} line(s)")
+        print(f"PASS: deleted {removed[0]} ({n} -> {len(kept)} lines){dry}")
+        return 0
+    for path, kept, n in out:
+        print(f"  {path}: removed {n - len(kept)} line(s), {n} -> {len(kept)}")
+    print(f"PASS: deleted {len(removed)} region(s) in {len(out)} file(s): "
+          f"{', '.join(removed)}{dry}")
     return 0
 
 

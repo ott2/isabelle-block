@@ -657,3 +657,75 @@ def test_emit_reports_on_stderr_and_keeps_stdout_verbatim(thy, run):
     p = thy()
     r = run("emit", f"{p}:7..9")
     assert "PASS:" not in r.stdout and "PASS:" in r.stderr
+
+
+# --- delete of several targets (#3) ---------------------------------------------
+
+def _one_at_a_time(thy, run, body: str, targets: list[str]) -> str:
+    """The text left by deleting ``targets`` one per run, bottom-up, so no
+    deletion moves the lines of a later one: the reference result."""
+    q = thy("Ref.thy", body)
+    for t in sorted(targets, key=lambda t: -int(t.split("..")[0])):
+        run("delete", f"{q}:{t}")
+    return q.read_text()
+
+
+@pytest.mark.parametrize("targets", [
+    ["5..8", "10..11"],      # adjacent: alpha's absorbed blank, then beta
+    ["10..11", "5..8"],      # the same, given top-down
+    ["16..17", "7..8", "10..11"],
+])
+def test_several_regions_delete_as_one_at_a_time_would(thy, run, targets):
+    want = _one_at_a_time(thy, run, FIXTURE, targets)
+    p = thy()
+    r = run("delete", *[f"{p}:{t}" for t in targets])
+    assert p.read_text() == want
+    assert f"deleted {len(targets)} region(s) in 1 file(s)" in r.stdout
+
+
+def test_names_and_spans_mix_across_files(thy, run):
+    p, q = thy("A.thy"), thy("B.thy")
+    run("delete", f"{p}:beta", f"{q}:alpha", f"{p}:7..8")
+    a, b = p.read_text(), q.read_text()
+    assert "lemma beta" not in a and "lemma alpha" not in a
+    assert "lemma alpha" not in b and "lemma beta" in b
+
+
+@pytest.mark.parametrize("targets", [
+    ["7..10", "10..11"],     # one shared line
+    ["beta", "7..10"],       # a name and a span that cross
+])
+def test_overlapping_regions_refuse(thy, run, snapshot, targets):
+    p = thy()
+    before = snapshot()
+    r = run("delete", *[f"{p}:{t}" for t in targets])
+    assert r.returncode == 1 and "overlap" in r.stdout and snapshot() == before
+
+
+def test_a_repeated_region_is_deleted_once(thy, run):
+    # `query unused facts --spans` repeats a clause's span for each unused
+    # fact in it, so the column must paste as it stands.
+    want = _one_at_a_time(thy, run, FIXTURE, ["10..11"])
+    p = thy()
+    r = run("delete", f"{p}:beta", f"{p}:10..11", f"{p}:10..11")
+    assert p.read_text() == want and "2 repeated region(s)" in r.stdout
+
+
+def test_one_bad_target_writes_nothing_anywhere(thy, run, snapshot):
+    p, q = thy("A.thy"), thy("B.thy")
+    before = snapshot()
+    r = run("delete", f"{p}:alpha", f"{q}:no_such_lemma")
+    assert r.returncode == 1 and snapshot() == before
+
+
+def test_choices_from_several_targets_come_in_one_fail(thy, run, snapshot):
+    p = thy("Both.thy", BOTH)
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr", f"{p}:delta")
+    assert r.returncode == 1 and snapshot() == before
+    assert "2 choices are open" in last_line(r.stdout)
+    assert "'gamma_tr'" in r.stdout and "'delta'" in r.stdout
+    run("delete", f"{p}:gamma_tr", f"{p}:delta", "--no-preamble")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt and "lemma delta:" not in txt
+    assert "What this section" in txt and "Where delta lives" in txt
