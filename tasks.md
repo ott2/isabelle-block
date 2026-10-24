@@ -193,6 +193,8 @@ recommendation for each) and a test plan.
   pypi-isabelle-block`, from Andras's `~/.pypirc`.
   - v0.1.4 (2026-10-24): issue #2, a multi-line `sub` OLD and the README's
     PyPI install line.
+  - v0.1.5 (2026-10-24): several `delete` targets in one call (half of
+    #3); the locus half waits on isabelle-query#34.
   - The README shown on PyPI is the one in the uploaded version.  So 0.1.3's
     PyPI page still says "not on PyPI yet" (#2), until 0.1.4 is uploaded.
   - `pip index versions` may serve a stale list from pip's cache just after
