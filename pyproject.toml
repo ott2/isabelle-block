@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "isabelle-block"
-version = "0.1.4"
+version = "0.1.5.dev0"
 description = "Mechanical block surgery on Isabelle theory sources: move, copy, delete, rewrite and substitute inside regions named by line span or by entry name."
 readme = "README.md"
 requires-python = ">=3.9"
