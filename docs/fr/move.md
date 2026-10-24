@@ -97,6 +97,16 @@ one addressing helper.
 The helpers are `_headings`, `_heading_directly_above` and
 `_block_heading_level`, shared with `delete`'s empty-heading check.
 
+**Refined 2026-10-24 (issue #1).**  "Below the heading but above the
+preamble" was a silent choice: the preamble may be the section's
+introduction, which the source side of the same rule already refuses to
+guess.  When the block lands under the heading and NAME's preamble is
+flagged (`preamble_follows_heading`), the move now refuses until given
+`--land-above-text` (the text stays with NAME) or `--land-below-text` (it
+stays under the heading).  This covers a lower-ranked headed block too.
+The pair is separate from `--with-preamble` / `--no-preamble` (Andras), so
+that a move flagged at both ends answers each question on its own.
+
 ## Decisions for Andras (recommendation first)
 
 - **D1.**  Should the check run only for cross-theory moves?  **Yes.**

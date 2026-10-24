@@ -57,7 +57,13 @@ refuses until told: `--keep-heading` leaves the bare heading, and
 `move`/`copy … before NAME` lands under the heading NAME sits directly
 beneath.  A block that starts with a heading of its own, of the same or
 higher rank, lands above that heading instead, so it does not take NAME into
-its section.
+its section.  Landing under the heading, when NAME's doc block sits directly
+beneath it, is the same question asked of the destination, so it refuses
+until told: `--land-above-text` lands above that text, `--land-below-text`
+between it and NAME.  A LINE destination is taken literally.
+
+A refusal for want of a choice lists every open choice at once, so a single
+rerun with one flag of each pair goes through.
 
 Isabelle's keyword table is session-wide, so a theory may use a command that
 another theory's `keywords` declares.  Name resolution therefore parses with
@@ -81,6 +87,10 @@ Modifiers
                          its heading
   --with-heading         (delete) remove a section's only entry together
                          with the whole section: heading, text and entry
+  --land-above-text      (move, copy before NAME) land above NAME's doc
+                         block, which then stays with NAME
+  --land-below-text      (move, copy before NAME) land between NAME's doc
+                         block and NAME, so the text stays under its heading
   --root DIR             the session root whose keyword table NAME
                          resolution parses with (default: discovered)
   --cut                  (split only) remove the extracted ranges from SRC
@@ -158,6 +168,29 @@ _ROOT: Path | None = None
 # parse with a session's keyword table costs a walk of its theory headers.
 # Every verb resolves before it writes, so a cached parse is never stale.
 _SECTIONS: dict = {}
+# Choices the author must make before an edit can proceed, collected so that
+# one FAIL lists them all (#1): asking one per run took three runs to find a
+# working combination.  `_settle` refuses while any is open.
+_CHOICES: list[str] = []
+
+
+def _ask(msg: str) -> None:
+    """Record a choice the author must make; `_settle` refuses on it."""
+    if msg not in _CHOICES:
+        _CHOICES.append(msg)
+
+
+def _settle() -> None:
+    """Refuse, listing every open choice, unless there is none.  Each verb
+    calls it once its addressing is done, and `write` calls it too, so an
+    open choice never reaches the disk."""
+    if len(_CHOICES) == 1:
+        fail(_CHOICES[0])
+    if _CHOICES:
+        for i, msg in enumerate(_CHOICES, start=1):
+            print(f"  choice {i}: {msg}")
+        fail(f"{len(_CHOICES)} choices are open, listed above; give one flag "
+             "of each pair")
 
 
 def _section(path: Path):
@@ -320,7 +353,7 @@ def resolve_entry(path: Path, name: str, preamble: str = "auto",
         return e.thy_line, hi
     if removes and preamble == "auto" and e.preamble and e.preamble_follows_heading:
         a, b = e.preamble
-        fail(f"{path}:{a}: the text at lines {a}..{b} above {name!r} sits "
+        _ask(f"{path}:{a}: the text at lines {a}..{b} above {name!r} sits "
              "directly under a section heading, so it may introduce the "
              f"section rather than document {name!r}.  Say which: "
              "--with-preamble takes it with the entry, --no-preamble leaves "
@@ -422,6 +455,7 @@ def norm_splice(left: list[str], block: list[str], right: list[str]
 
 
 def write(path: Path, lines: list[str], dry: bool) -> None:
+    _settle()
     if not dry:
         path.write_text("".join(lines))
 
@@ -459,6 +493,14 @@ def v_move(args, opt, copy: bool) -> int:
     # under it.  So it lands above NAME's heading instead.  A lower-ranked
     # heading (a subsubsection before a subsection's first lemma) still
     # nests under NAME's heading, as it would in an outline.
+    #
+    # Landing under the heading has its own question when NAME's doc block
+    # sits directly beneath it (#1): that text may introduce the section,
+    # and the block would then split the heading from its introduction.
+    # It is the source side's question asked of the destination, so it
+    # needs a choice too: --land-above-text keeps the text with NAME,
+    # --land-below-text keeps it under the heading.  The two pairs are
+    # separate because a move may raise both, of different texts.
     if dest_entry is not None:
         h = _heading_directly_above(dst, dest_entry)
         level = _block_heading_level(src, start, end) if h else None
@@ -466,6 +508,17 @@ def v_move(args, opt, copy: bool) -> int:
             target = h[0]
             print(f"  landing above the heading at {dst}:{h[0]}: the block "
                   "starts with a heading of its own")
+        elif opt["land"] == "below":
+            target = dest_entry.thy_line
+        elif opt["land"] == "auto" and h is not None and dest_entry.preamble:
+            a, b = dest_entry.preamble
+            name = dest_entry.name
+            _ask(f"{dst}:{a}: the text at lines {a}..{b} above {name!r} sits "
+                 "directly under a section heading, so it may introduce the "
+                 f"section rather than document {name!r}.  Say where the "
+                 "block lands: --land-above-text above that text, "
+                 f"--land-below-text between it and {name!r}")
+    _settle()
     verb = "copied" if copy else "moved"
     absorb = opt["absorb"]
     intra = src.resolve() == dst.resolve()
@@ -558,10 +611,11 @@ def _emptied_section(spec: str, opt):
     if opt["heading"] == "keep":
         return None
     if opt["heading"] == "auto":
-        fail(f"{path}:{h_lo}: {region!r} is the only entry under the heading at "
+        _ask(f"{path}:{h_lo}: {region!r} is the only entry under the heading at "
              f"line {h_lo}, so deleting it leaves that heading empty.  Say "
              f"which: --with-heading deletes the whole section (lines "
              f"{h_lo}..{s_end}), --keep-heading deletes only the entry")
+        return None
     if opt["preamble"] == "without":
         fail("--with-heading deletes the whole section, text included, so "
              "--no-preamble cannot leave the entry's text behind")
@@ -579,6 +633,7 @@ def v_delete(args, opt) -> int:
         start, end = section[0], max(section[1], hi)
     else:
         path, start, end = parse_target(args[0], opt["preamble"], removes=True)
+    _settle()
     lines = read_lines(path)
     n = len(lines)
     end_idx = end
@@ -610,6 +665,7 @@ def v_replace(args, opt) -> int:
     if len(args) != 2:
         fail(f"usage: {USAGE['replace']}")
     path, start, end = parse_target(args[0], opt["preamble"], removes=True)
+    _settle()
     newpath = Path(args[1])
     new = read_lines(newpath)
     if new and not new[-1].endswith("\n"):
@@ -1123,12 +1179,14 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     opt = {"absorb": True, "dry": False, "preamble": "auto", "heading": "auto",
-           "cut": False, "expect": None, "except": []}
+           "land": "auto", "cut": False, "expect": None, "except": []}
+    _CHOICES.clear()
     # Each pair is one choice, asked for when text could otherwise be lost
     # or orphaned; giving both halves of a pair is a contradiction.
     for key, pair, values in (
             ("preamble", ("--with-preamble", "--no-preamble"), ("with", "without")),
-            ("heading", ("--with-heading", "--keep-heading"), ("with", "keep"))):
+            ("heading", ("--with-heading", "--keep-heading"), ("with", "keep")),
+            ("land", ("--land-above-text", "--land-below-text"), ("above", "below"))):
         given = [f for f in pair if f in args]
         if len(given) == 2:
             fail(f"{pair[0]} and {pair[1]} contradict each other")

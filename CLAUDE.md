@@ -71,7 +71,15 @@ almost verbatim from `bin/block.py`.  Splitting it is `[module-split]` in
     (`_headings`, `_section_of`).
   - **The landing rule.**  `move`/`copy … before NAME` lands above NAME's
     heading when the block starts with a heading of the same or higher
-    rank, and under it otherwise.
+    rank, and under it otherwise.  Landing under it, when NAME's doc block
+    is flagged, refuses until given `--land-above-text` or
+    `--land-below-text` (#1).  This pair is separate from the preamble
+    pair, because one `move` may raise both questions, about two different
+    texts.
+  - **Choices are collected, not failed one by one** (#1): `_ask` records
+    one, and `_settle` refuses with all of them.  Each verb settles after
+    addressing, and `write` settles as a backstop, so an open choice never
+    reaches the disk.
 - **Splicing**: `norm_splice`.  This is the blank-seam healing, which leaves
   exactly one blank line between blocks.  It is the code that looks harmless to
   adjust, and its tests assert properties rather than golden bytes.

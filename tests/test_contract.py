@@ -389,6 +389,107 @@ def test_a_line_destination_is_taken_literally(thy, run):
     assert "landing above" not in r.stdout
 
 
+# --- landing under a heading, above its text (#1) -----------------------------
+
+@pytest.mark.parametrize("verb", ["move", "copy"])
+def test_landing_between_a_heading_and_its_text_asks(thy, run, snapshot, verb):
+    p = thy("Headed.thy", HEADED)
+    before = snapshot()
+    r = run(verb, f"{p}:alpha", "before", "gamma_tr")
+    assert r.returncode == 1 and snapshot() == before
+    assert "--land-above-text" in r.stdout and "--land-below-text" in r.stdout
+
+
+def test_land_above_text_keeps_the_text_with_the_target(thy, run):
+    p = thy("Headed.thy", HEADED)
+    run("move", f"{p}:alpha", "before", "gamma_tr", "--land-above-text")
+    txt = p.read_text()
+    assert (txt.index("subsection") < txt.index("lemma alpha")
+            < txt.index("What this section") < txt.index("lemma gamma_tr"))
+
+
+def test_land_below_text_keeps_the_text_under_its_heading(thy, run):
+    p = thy("Headed.thy", HEADED)
+    r = run("move", f"{p}:alpha", "before", "gamma_tr", "--land-below-text")
+    txt = p.read_text()
+    assert (txt.index("subsection") < txt.index("What this section")
+            < txt.index("lemma alpha") < txt.index("lemma gamma_tr"))
+    _assert_one_blank_around(txt.splitlines(), *_landing(r))
+
+
+def test_a_lower_ranked_heading_landing_under_the_text_asks(thy, run, snapshot):
+    p = thy("Low.thy", HEADED.replace(
+        "\nend\n", "\nsubsubsection \\<open>Low\\<close>\n\n"
+                   "lemma low: True by simp\n\nend\n"))
+    lo, hi = _line_of(p, "Low"), _line_of(p, "lemma low")
+    before = snapshot()
+    r = run("move", f"{p}:{lo}..{hi}", "before", "gamma_tr")
+    assert r.returncode == 1 and snapshot() == before
+    assert "--land-below-text" in r.stdout
+
+
+def test_a_block_landing_above_the_heading_needs_no_landing_choice(thy, run):
+    p = thy("Two.thy", HEADED.replace(
+        "\nend\n", "\nsubsection \\<open>Other\\<close>\n\n"
+                   "lemma delta: True by simp\n\nend\n"))
+    lo, hi = _line_of(p, "Other"), _line_of(p, "lemma delta")
+    r = run("move", f"{p}:{lo}..{hi}", "before", "gamma_tr")
+    assert r.returncode == 0 and "landing above the heading" in r.stdout
+
+
+def test_a_line_destination_under_a_heading_needs_no_choice(thy, run):
+    p = thy("Headed.thy", HEADED)
+    r = run("move", f"{p}:alpha", "before", _line_of(p, "What this section"))
+    assert r.returncode == 0
+
+
+# --- every open choice in one FAIL (#1) ----------------------------------------
+
+def test_one_fail_lists_every_open_choice(thy, run, snapshot):
+    p = thy("Solo.thy", SOLO)
+    before = snapshot()
+    r = run("delete", f"{p}:gamma_tr")
+    assert r.returncode == 1 and snapshot() == before
+    for flag in ("--with-heading", "--keep-heading",
+                 "--with-preamble", "--no-preamble"):
+        assert flag in r.stdout
+    assert "2 choices are open" in last_line(r.stdout)
+    # So one rerun, with a flag from each pair, goes through.
+    run("delete", f"{p}:gamma_tr", "--keep-heading", "--no-preamble")
+    txt = p.read_text()
+    assert "lemma gamma_tr" not in txt and "What this section" in txt
+
+
+# Two sections, each with a text under its heading: a move between them asks
+# about the text it leaves and the text it lands by, and the answers differ.
+BOTH = HEADED.replace(
+    "\nend\n", "\nsubsection \\<open>Other\\<close>\n\n"
+               "text \\<open>Where delta lives.\\<close>\n\n"
+               "lemma delta: True by simp\n\nlemma delta_two: True by simp\n\nend\n")
+
+
+def test_source_and_landing_choices_are_independent(thy, run, snapshot):
+    p = thy("Both.thy", BOTH)
+    before = snapshot()
+    r = run("move", f"{p}:gamma_tr", "before", "delta")
+    assert r.returncode == 1 and snapshot() == before
+    assert "--no-preamble" in r.stdout and "--land-below-text" in r.stdout
+    run("move", f"{p}:gamma_tr", "before", "delta",
+        "--no-preamble", "--land-below-text")
+    txt = p.read_text()
+    assert txt.index("A heading") < txt.index("What this section") < txt.index("Other")
+    assert (txt.index("Other") < txt.index("Where delta lives")
+            < txt.index("lemma gamma_tr") < txt.index("lemma delta"))
+
+
+def test_contradictory_landing_choices_refuse(thy, run, snapshot):
+    p = thy("Headed.thy", HEADED)
+    before = snapshot()
+    r = run("move", f"{p}:alpha", "before", "gamma_tr",
+            "--land-above-text", "--land-below-text")
+    assert r.returncode == 1 and snapshot() == before
+
+
 MIDLINE = FIXTURE.replace('lemma alpha: "1 = (1::nat)"\n  by simp',
                           'lemma alpha: "1 = (1::nat)"\n  by simp lemma mid: True by simp')
 

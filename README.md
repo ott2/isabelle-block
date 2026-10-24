@@ -64,16 +64,23 @@ included.
 - `--keep-heading` / `--with-heading`: deleting the only entry under a
   heading refuses until you say whether the heading stays (bare) or the
   whole section goes with the entry.
-
-A block moved `before NAME` that starts with its own heading, of the same or
-higher rank as the heading above NAME, lands above that heading.  So it
-becomes a section beside NAME's, and does not swallow NAME.
+- `--land-above-text` / `--land-below-text`: a block moved or copied
+  `before NAME`, landing under a heading, refuses when NAME's doc block sits
+  directly under that heading, since the text may introduce the section.
+  Say whether the block lands above the text or between it and NAME.
 - `--root DIR` names the session root whose keyword table name resolution
   uses.  By default it is discovered as `query` discovers it: an
   environment variable, a `.isabelle-query` marker, or the nearest `ROOT`.
   The table matters because a theory may use a command that another theory
   in its session declares.
 - `--no-trailing-blank` cuts verbatim, without blank-line healing.
+
+A refusal for want of a choice lists every open choice at once, so one rerun
+with a flag from each pair goes through.
+
+A block moved `before NAME` that starts with its own heading, of the same or
+higher rank as the heading above NAME, lands above that heading.  So it
+becomes a section beside NAME's, and does not swallow NAME.
 
 `block --help` gives the full grammar, and `block VERB --help` gives one
 verb's.
