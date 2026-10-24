@@ -19,7 +19,7 @@ a lemma up and editing it.
 ## Install
 
 ```sh
-python3 -m pip install git+https://github.com/ott2/isabelle-block@v0.1.2
+python3 -m pip install git+https://github.com/ott2/isabelle-block@v0.1.3
 ```
 
 This puts `block` on your `PATH`.  Needs Python 3.9 or later; depends on

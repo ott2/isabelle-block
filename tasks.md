@@ -184,7 +184,10 @@ recommendation for each) and a test plan.
   - **v0.1.1 released 2026-10-23** (`b32c74d`): `[cut-span]`.  The tag
     install works in a fresh Python 3.15 venv.
   - **v0.1.2 released 2026-10-24** (`3b42ce1`): `[heading-rule]` and the
-    isabelle-query 1.1.1 floor.  `main` is now 0.1.3.dev0.
+    isabelle-query 1.1.1 floor.
+  - **v0.1.3 released 2026-10-24**: issue #1, the landing choice
+    (`--land-above-text` / `--land-below-text`) and one FAIL for every
+    open choice.  `main` is now 0.1.4.dev0.
   - The first PyPI upload will be a later version, not 0.1.0.  Steps 4 and 6
     below then apply to that version.  When it happens, switch the README's
     install line back to `pip install isabelle-block`.
