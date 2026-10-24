@@ -179,8 +179,10 @@ recommendation for each) and a test plan.
   v0.1.2 (`3b42ce1`) brought `[heading-rule]`, and v0.1.3 (`4c0aadc`) issue
   #1.  The process is `docs/publishing.md`; the upload is `twine upload -r
   pypi-isabelle-block`, from Andras's `~/.pypirc`.
+  - v0.1.4 (2026-10-24): issue #2, a multi-line `sub` OLD and the README's
+    PyPI install line.
   - The README shown on PyPI is the one in the uploaded version.  So 0.1.3's
-    PyPI page still says "not on PyPI yet" (#2), until the next upload.
+    PyPI page still says "not on PyPI yet" (#2), until 0.1.4 is uploaded.
   - `pip index versions` may serve a stale list from pip's cache just after
     an upload; `--no-cache-dir` sees the new version.
 - [ ] `[ndtht-switchover]` **Point NDTHT at the package**.  Unblocked: it is on
