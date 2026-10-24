@@ -22,4 +22,4 @@ requested only for a demonstrated limit.
 | U8 | `<toplevel>` tsv rows | **fixed in 0.9.8**: rows carry theory, session and a `TOPLEVEL` tag.  NDTHT's draft `upstream/query-callers-batch.md` is obsolete |
 | U9 | bound names as call-graph nodes | **deferred**: draft when `rename` phase 3 (constructor case names) is built |
 | U10 | `query-same-line-declaration.md` | **fixed in 1.1.1** ([#29](https://github.com/ott2/isabelle-query/issues/29)): a mid-line declaration is an entry, with `shares_line` set on it and, via `runs_into_next`, on the entry before (36 AFP sites) |
-| U11 | `query-theory-resolver.md` | drafted 2026-10-24, for isabelle-block#3: a public resolver for a locus's THEORY (name, label) that returns every candidate.  `block` waits for it (Andras: upstream only, no local resolver) |
+| U11 | `query-theory-resolver.md` | **posted** 2026-10-24 as [#34](https://github.com/ott2/isabelle-query/issues/34), for isabelle-block#3: a public resolver for a locus's THEORY (name, label) that returns every candidate.  `block` waits for it (Andras: upstream only, no local resolver) |

@@ -1,7 +1,8 @@
 # Draft: isabelle-query — a public resolver for a locus's theory part
 
-**Status:** drafted 2026-10-24, not posted.  Checked against isabelle-query
-1.2.0.  This is U11.  It comes from isabelle-block#3.
+**Status:** posted 2026-10-24 as
+[isabelle-query#34](https://github.com/ott2/isabelle-query/issues/34), at
+Andras's request.  Checked against isabelle-query 1.2.0.  This is U11.  It comes from isabelle-block#3.
 
 **Title:** `api`: resolve the THEORY in `THEORY:LINE` / `THEORY:A..B` the way
 the CLI does

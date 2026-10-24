@@ -170,14 +170,14 @@ recommendation for each) and a test plan.
   - U8 is fixed in 0.9.8.
   - U1 and U3 are conditional.
   - U6 and U9 are deferred to `rename`.
-  - U11 is drafted, checked against 1.2.0, and not yet posted.
+  - U11 was posted as isabelle-query#34 (2026-10-24).
 
 - [ ] `[locus-targets]` **Accept a `query` locus as a target** (#3):
   `Diagonal_Machine:3608..3609`, a theory name or label where a FILE goes.
   **Upstream only** (Andras, 2026-10-24): no local resolver, since query's
   label grammar (bare name, `beta/Examples`, `While/Hoare`) is query's to
   read, and a target resolved to the wrong file is the dangerous failure.
-  Waits on U11.  When it lands: try the FILE as a path first, then the
+  Waits on U11 (isabelle-query#34).  When it lands: try the FILE as a path first, then the
   resolver; more than one candidate is a refusal that lists them.  The
   other half of #3, several `delete` targets in one call, is done
   (0.1.5).
